@@ -1,0 +1,22 @@
+{
+ "app": "hr_mobile_app",
+ "bg_color": "teal",
+ "creation": "2026-08-02 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Desktop Icon",
+ "hidden": 0,
+ "icon": "smartphone",
+ "icon_type": "Link",
+ "idx": 0,
+ "label": "HR Mobile App",
+ "link_to": "HR Mobile App",
+ "link_type": "Workspace Sidebar",
+ "logo_url": "/assets/hr_mobile_app/images/hr-mobile-logo.svg",
+ "modified": "2026-08-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "HR Mobile App",
+ "owner": "Administrator",
+ "restrict_removal": 0,
+ "roles": [],
+ "standard": 1
+}

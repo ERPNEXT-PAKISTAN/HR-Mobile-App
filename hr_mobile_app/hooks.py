@@ -11,15 +11,14 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "hr_mobile_app",
-# 		"logo": "/assets/hr_mobile_app/logo.png",
-# 		"title": "HR Mobile App",
-# 		"route": "/hr_mobile_app",
-# 		"has_permission": "hr_mobile_app.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "hr_mobile_app",
+		"logo": "/assets/hr_mobile_app/images/hr-mobile-logo.svg",
+		"title": "HR Mobile App",
+		"route": "/hr_app",
+	}
+]
 
 # Includes in <head>
 # ------------------
