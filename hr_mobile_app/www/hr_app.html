@@ -1636,14 +1636,41 @@
     }
 
     // Generic Fetch API Wrapper
+    function extractApiError(result) {
+      try {
+        if (result._server_messages) {
+          const msgs = JSON.parse(result._server_messages);
+          if (msgs.length) {
+            const first = typeof msgs[0] === 'string' ? JSON.parse(msgs[0]) : msgs[0];
+            const html = first.message || first;
+            const tmp = document.createElement('div');
+            tmp.innerHTML = html;
+            return (tmp.textContent || tmp.innerText || '').trim();
+          }
+        }
+      } catch (e) {}
+      try {
+        if (result.exc) {
+          const excData = JSON.parse(result.exc);
+          const line = (excData[0] || '').split('\n').filter(Boolean).pop() || '';
+          if (line.toLowerCase().includes('same timestamp') || line.toLowerCase().includes('already has a log')) {
+            return 'Check-in already recorded. Please wait a moment before submitting again.';
+          }
+          return line.replace(/^.*?:\s*/, '') || 'Server error.';
+        }
+      } catch (e) {}
+      return 'Server error.';
+    }
+
     async function callApi(method, data = {}) {
       try {
+        const csrf = getCookie('csrf_token') || (window.csrf_token || '') || getCookie('sid');
         const response = await fetch(`/api/method/${method}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-Frappe-CSRF-Token': getCookie('sid')
+            'X-Frappe-CSRF-Token': csrf
           },
           body: JSON.stringify(data)
         });
@@ -1655,8 +1682,7 @@
         }
         
         if (result.exc) {
-          const excData = JSON.parse(result.exc);
-          showToast(excData[0] || "Server error.", true);
+          showToast(extractApiError(result), true);
           return null;
         }
         
@@ -1997,10 +2023,15 @@
     }
 
     // Submit Checkin Log
+    let checkinSubmitting = false;
     async function submitCheckin() {
       const btn = document.getElementById('btn-submit-checkin');
-      btn.disabled = true;
-      btn.innerText = "Submitting Check-In...";
+      if (checkinSubmitting || (btn && btn.disabled)) return;
+      checkinSubmitting = true;
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Submitting Check-In...";
+      }
       
       const payload = {
         log_type: selectedCheckinType,
@@ -2008,22 +2039,25 @@
         longitude: currentLng
       };
       
-      const res = await callApi('hr_mobile_app.api.mark_employee_checkin', payload);
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Submit Check-In Log`;
-      
-      if (res && res.status === 'success') {
-        showToast(res.message);
-        
-        // Update header and home screen widgets
-        if (currentUser) {
-          currentUser.last_checkin = res.checkin;
-          updateCheckinStatus(res.checkin);
+      try {
+        const res = await callApi('hr_mobile_app.api.mark_employee_checkin', payload);
+        if (res && res.status === 'success') {
+          showToast(res.message);
+          if (currentUser) {
+            currentUser.last_checkin = res.checkin;
+            updateCheckinStatus(res.checkin);
+          }
+          await fetchCheckins();
+          await loadMonthlyCalendar();
+        } else if (res && res.status === 'error') {
+          showToast(res.message || 'Could not save check-in.', true);
         }
-        
-        // Update recent logs list + calendar
-        await fetchCheckins();
-        await loadMonthlyCalendar();
+      } finally {
+        checkinSubmitting = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Submit Check-In Log`;
+        }
       }
     }
 

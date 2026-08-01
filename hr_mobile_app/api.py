@@ -155,41 +155,101 @@ def get_hr_app_user_info():
 
 @frappe.whitelist()
 def mark_employee_checkin(log_type, latitude=None, longitude=None):
+	from datetime import timedelta
+
+	from frappe.utils import get_datetime, now_datetime
+
 	user = frappe.session.user
 	if user == "Guest":
 		frappe.throw("Not Logged In", frappe.PermissionError)
 
-	emp_name = frappe.db.get_value("Employee", {"user_id": user, "status": "Active"}, "name")
-	if not emp_name and user == "Administrator":
-		emp_name = "HR-EMP-00001"
-
+	emp_name = _resolve_employee(user)
 	if not emp_name:
 		frappe.throw("No active Employee linked to your user account.")
 
-	# Get shift name
+	log_type = (log_type or "").strip().upper()
+	if log_type not in ("IN", "OUT"):
+		frappe.throw("Invalid log type. Use IN or OUT.")
+
+	# Ignore accidental double-taps within a few seconds (same log type).
+	recent = frappe.db.sql(
+		"""
+		SELECT name, time, log_type, latitude, longitude, shift, device_id, employee
+		FROM `tabEmployee Checkin`
+		WHERE employee = %s
+			AND log_type = %s
+			AND time >= %s
+		ORDER BY time DESC
+		LIMIT 1
+		""",
+		(emp_name, log_type, now_datetime() - timedelta(seconds=8)),
+		as_dict=True,
+	)
+	if recent:
+		row = recent[0]
+		return {
+			"status": "success",
+			"message": f"Already checked {log_type} at {frappe.utils.format_datetime(row.time)}",
+			"checkin": row,
+			"duplicate": 1,
+		}
+
 	shift = frappe.db.get_value("Shift Assignment", {"employee": emp_name, "status": "Active"}, "shift_type")
 	if not shift:
-		emp_default_shift = frappe.db.get_value("Employee", emp_name, "default_shift")
-		shift = emp_default_shift or "Morning Shift"
+		shift = frappe.db.get_value("Employee", emp_name, "default_shift") or "Morning Shift"
 
-	# Create Check-in record
-	checkin = frappe.get_doc({
-		"doctype": "Employee Checkin",
-		"employee": emp_name,
-		"log_type": log_type,
-		"time": frappe.utils.now_datetime(),
-		"device_id": "Mobile Web App",
-		"shift": shift,
-		"latitude": flt(latitude) if latitude else None,
-		"longitude": flt(longitude) if longitude else None
-	})
-	checkin.insert(ignore_permissions=True)
-	frappe.db.commit()
+	# HRMS strips microseconds and rejects same employee+log_type+timestamp.
+	check_time = get_datetime(now_datetime()).replace(microsecond=0)
+	for _ in range(5):
+		exists = frappe.db.exists(
+			"Employee Checkin",
+			{"employee": emp_name, "time": check_time, "log_type": log_type},
+		)
+		if not exists:
+			break
+		check_time = check_time + timedelta(seconds=1)
+
+	try:
+		checkin = frappe.get_doc(
+			{
+				"doctype": "Employee Checkin",
+				"employee": emp_name,
+				"log_type": log_type,
+				"time": check_time,
+				"device_id": "Mobile Web App",
+				"shift": shift,
+				"latitude": flt(latitude) if latitude else None,
+				"longitude": flt(longitude) if longitude else None,
+			}
+		)
+		checkin.insert(ignore_permissions=True)
+		frappe.db.commit()
+	except frappe.ValidationError as e:
+		frappe.db.rollback()
+		# Soft-fail duplicate race: return latest matching log instead of traceback.
+		msg = str(e)
+		if "same timestamp" in msg.lower() or "already has a log" in msg.lower():
+			latest = frappe.get_all(
+				"Employee Checkin",
+				filters={"employee": emp_name, "log_type": log_type},
+				fields=["name", "time", "log_type", "latitude", "longitude", "shift", "device_id", "employee"],
+				order_by="time desc",
+				limit=1,
+			)
+			if latest:
+				return {
+					"status": "success",
+					"message": f"Already checked {log_type} at {frappe.utils.format_datetime(latest[0].time)}",
+					"checkin": latest[0],
+					"duplicate": 1,
+				}
+		frappe.clear_messages()
+		return {"status": "error", "message": frappe.utils.strip_html(msg) or "Could not save check-in."}
 
 	return {
 		"status": "success",
 		"message": f"Successfully checked {log_type} at {frappe.utils.format_datetime(checkin.time)}",
-		"checkin": checkin.as_dict()
+		"checkin": checkin.as_dict(),
 	}
 
 
