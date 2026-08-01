@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HR Mobile App - ERPNext Portal</title>
+  <meta name="description" content="A premium mobile application for marking employee checkin, shift management, leave applications, payroll and manager dashboards.">
+  
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    /* Premium CSS Variables & Reset */
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --primary-light: #e0e7ff;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --danger: #ef4444;
+      --danger-light: #fee2e2;
+      --info: #0ea5e9;
+      --info-light: #e0f2fe;
+      
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 30px;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-premium: 0 20px 25px -5px rgba(79, 70, 229, 0.1), 0 10px 10px -5px rgba(79, 70, 229, 0.04);
+      
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: var(--gray-900);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    /* Desktop Mockup Frame */
+    .app-simulator {
+      width: 100%;
+      max-width: 410px;
+      height: 100vh;
+      background: #ffffff;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+    }
+
+    @media (min-width: 600px) {
+      .app-simulator {
+        height: 860px;
+        border-radius: var(--radius-xl);
+        border: 12px solid var(--gray-800);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      }
+    }
+
+    /* Scrollbars styling */
+    .screen-content::-webkit-scrollbar {
+      width: 4px;
+    }
+    .screen-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .screen-content::-webkit-scrollbar-thumb {
+      background: var(--gray-300);
+      border-radius: 2px;
+    }
+
+    /* App Shell Elements */
+    .app-header {
+      background: linear-gradient(135deg, var(--primary) 0%, #312e81 100%);
+      color: #ffffff;
+      padding: 20px 20px 25px 20px;
+      border-bottom-left-radius: var(--radius-lg);
+      border-bottom-right-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+    }
+
+    .logo-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-avatar {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #a78bfa 0%, #6d28d9 100%);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 700;
+      font-size: 15px;
+      color: white;
+      text-transform: uppercase;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .user-details {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .user-role {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-logout {
+      background: rgba(255, 255, 255, 0.15);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-logout:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Screen Area */
+    .screen-container {
+      flex-grow: 1;
+      position: relative;
+      background-color: var(--gray-50);
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 1;
+    }
+
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+      z-index: 5;
+    }
+
+    .screen-content {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* Bottom Navigation Bar */
+    .app-nav {
+      height: 72px;
+      background: #ffffff;
+      border-top: 1px solid var(--gray-200);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 0 10px;
+      flex-shrink: 0;
+      z-index: 10;
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: var(--gray-500);
+      text-decoration: none;
+      font-size: 10px;
+      font-weight: 500;
+      gap: 5px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      background: transparent;
+      padding: 8px;
+      flex: 1;
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      transition: var(--transition);
+    }
+
+    .nav-item.active {
+      color: var(--primary);
+    }
+
+    .nav-item.active svg {
+      transform: scale(1.15);
+      stroke-width: 2.5;
+    }
+
+    /* Card styling */
+    .card {
+      background: #ffffff;
+      border-radius: var(--radius-md);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-100);
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-800);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      width: 100%;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+      box-shadow: var(--shadow-premium);
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      transform: scale(1.02);
+    }
+
+    .btn-success {
+      background: var(--success);
+      color: #ffffff;
+    }
+
+    .btn-success:hover {
+      background: #0d9488;
+      transform: scale(1.02);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    /* Screen 1: Login Screen */
+    #screen-login {
+      background: linear-gradient(135deg, #e0e7ff 0%, #ffffff 100%);
+      justify-content: center;
+    }
+
+    .login-container {
+      padding: 30px;
+      width: 100%;
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .login-logo {
+      width: 60px;
+      height: 60px;
+      background: var(--primary);
+      color: white;
+      border-radius: var(--radius-md);
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      box-shadow: var(--shadow-premium);
+      margin-bottom: 16px;
+    }
+
+    .login-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 14px;
+      color: var(--gray-500);
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--gray-300);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--gray-800);
+      background-color: white;
+      transition: var(--transition);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    /* Screen 2: Dashboard/Home */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: white;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      border: 1px solid var(--gray-100);
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-800);
+      margin-bottom: 4px;
+    }
+
+    .stat-lbl {
+      font-size: 11px;
+      color: var(--gray-500);
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+      gap: 6px;
+    }
+
+    .badge-in {
+      background-color: var(--success-light);
+      color: var(--success);
+    }
+
+    .badge-out {
+      background-color: var(--danger-light);
+      color: var(--danger);
+    }
+
+    .badge-pending {
+      background-color: var(--warning-light);
+      color: var(--warning);
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background-color: currentColor;
+      border-radius: 50%;
+    }
+
+    /* Screen 3: Check-in Marking & Map */
+    .checkin-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .btn-toggle-log {
+      flex: 1;
+      padding: 14px;
+      border: 2px solid var(--gray-200);
+      border-radius: var(--radius-md);
+      background: white;
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: var(--transition);
+      text-align: center;
+    }
+
+    .btn-toggle-log.active-in {
+      border-color: var(--success);
+      color: var(--success);
+      background-color: var(--success-light);
+    }
+
+    .btn-toggle-log.active-out {
+      border-color: var(--danger);
+      color: var(--danger);
+      background-color: var(--danger-light);
+    }
+
+    .coordinates-panel {
+      font-size: 12px;
+      color: var(--gray-600);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding: 8px 12px;
+      background-color: var(--gray-100);
+      border-radius: var(--radius-sm);
+    }
+
+    /* Map container */
+    #map-view {
+      width: 100%;
+      height: 250px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-200);
+      z-index: 1;
+    }
+
+    /* Screen 4: Leave Manager */
+    .leave-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .leave-item:last-child {
+      border-bottom: none;
+    }
+
+    .leave-type-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .leave-type-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--gray-800);
+    }
+
+    .leave-dates {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-top: 2px;
+    }
+
+    /* Screen 5: Shift / Roster & Payroll */
+    .payslip-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px;
+      background: var(--gray-50);
+      border-radius: var(--radius-sm);
+      margin-bottom: 10px;
+      border: 1px solid var(--gray-100);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .payslip-item:hover {
+      background: var(--gray-100);
+      transform: translateX(3px);
+    }
+
+    .payslip-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .payslip-id {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--gray-800);
+    }
+
+    .payslip-period {
+      font-size: 11px;
+      color: var(--gray-500);
+    }
+
+    .payslip-amount {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--primary);
+    }
+
+    /* Modal Payslip Overlay */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 100;
+      display: none;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    .modal-sheet {
+      background: white;
+      width: 100%;
+      border-top-left-radius: var(--radius-lg);
+      border-top-right-radius: var(--radius-lg);
+      max-height: 80%;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+
+    .btn-close-modal {
+      border: none;
+      background: var(--gray-100);
+      color: var(--gray-600);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Detailed Payslip View inside Sheet */
+    .slip-section {
+      border-bottom: 1px dashed var(--gray-200);
+      padding: 12px 0;
+    }
+
+    .slip-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    .slip-label {
+      color: var(--gray-500);
+    }
+
+    .slip-value {
+      font-weight: 500;
+      color: var(--gray-800);
+    }
+
+    .slip-component-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+
+    .slip-component-table th, .slip-component-table td {
+      padding: 8px;
+      text-align: left;
+      font-size: 12px;
+    }
+
+    .slip-component-table th {
+      background-color: var(--gray-100);
+      color: var(--gray-600);
+      font-weight: 600;
+    }
+
+    .slip-component-table td {
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .slip-component-table .amount-col {
+      text-align: right;
+    }
+
+    /* Screen 6: Manager Workspace */
+    .manager-section-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin: 16px 0 10px 0;
+    }
+
+    .approval-card {
+      background: var(--gray-50);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      border: 1px solid var(--gray-200);
+      margin-bottom: 12px;
+    }
+
+    .approval-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .approval-emp-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .approval-details {
+      font-size: 12px;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+    }
+
+    .approval-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-approve {
+      background: var(--success);
+      color: white;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+
+    .btn-reject {
+      background: var(--danger);
+      color: white;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+
+    #team-map-view {
+      width: 100%;
+      height: 220px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--gray-200);
+      margin-bottom: 16px;
+      z-index: 1;
+    }
+
+    /* Toast Notification system */
+    .toast-container {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      z-index: 1000;
+      width: calc(100% - 40px);
+      max-width: 350px;
+      pointer-events: none;
+      transition: var(--transition);
+      opacity: 0;
+    }
+
+    .toast-container.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast {
+      background: var(--gray-800);
+      color: white;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Custom CSS Charts styling */
+    .progress-ring-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 10px auto;
+    }
+
+    .progress-ring-svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+
+    .progress-ring-circle {
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+    }
+
+    .progress-ring-bg {
+      stroke: var(--gray-200);
+    }
+
+    .progress-ring-val {
+      stroke: var(--primary);
+      stroke-dasharray: 251.2; /* 2 * PI * r */
+      stroke-dashoffset: 251.2;
+      transition: stroke-dashoffset 0.5s ease-out;
+    }
+
+    .progress-ring-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gray-800);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mock Mobile Shell -->
+  <div class="app-simulator">
+    
+    <!-- Toast notification overlay -->
+    <div id="app-toast-container" class="toast-container">
+      <div id="app-toast" class="toast">
+        <span id="toast-message">Success message</span>
+      </div>
+    </div>
+
+    <!-- HEADER: Visible when logged in -->
+    <header class="app-header" id="app-header" style="display: none;">
+      <div class="header-top">
+        <div class="logo-container">
+          <div class="logo-icon">H</div>
+          <div class="logo-title">HR portal</div>
+        </div>
+        <button class="btn-logout" id="btn-logout-action">Logout</button>
+      </div>
+      
+      <div class="header-top" style="margin-bottom: 0;">
+        <div class="header-user">
+          <div class="user-avatar" id="header-avatar-initials">T</div>
+          <div class="user-details">
+            <span class="user-name" id="header-user-name">Taimoor</span>
+            <span class="user-role" id="header-user-role">Accountant</span>
+          </div>
+        </div>
+        
+        <div class="status-badge badge-in" id="header-checkin-badge">
+          <div class="badge-dot"></div>
+          <span id="header-checkin-text">IN</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT SCREENS -->
+    <main class="screen-container">
+      
+      <!-- SCREEN 1: LOGIN -->
+      <section class="screen active" id="screen-login">
+        <div class="login-container">
+          <div class="login-header">
+            <div class="login-logo">H</div>
+            <h1 class="login-title">ERPNext HR Portal</h1>
+            <p class="login-subtitle">Sign in with your employee account</p>
+          </div>
+          
+          <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label for="login-email" class="form-label">Email or Username</label>
+              <input type="text" id="login-email" class="form-control" placeholder="username@example.com" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="login-password" class="form-label">Password</label>
+              <input type="password" id="login-password" class="form-control" placeholder="••••••••" required>
+            </div>
+            
+            <button type="submit" id="btn-submit-login" class="btn btn-primary">Login</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: HOME / DASHBOARD -->
+      <section class="screen" id="screen-home">
+        <div class="screen-content">
+          
+          <!-- Quick stats pie/progress ring card -->
+          <div class="card" style="text-align: center;">
+            <div class="card-title">This Month's Attendance</div>
+            <div class="progress-ring-container">
+              <svg class="progress-ring-svg">
+                <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
+                <circle id="progress-attendance-ring" class="progress-ring-circle progress-ring-val" cx="50" cy="50" r="40"></circle>
+              </svg>
+              <div class="progress-ring-label" id="text-attendance-pct">94%</div>
+            </div>
+            <div class="stat-grid" style="margin-top: 10px; margin-bottom: 0;">
+              <div style="text-align: center;">
+                <div class="stat-val" id="stat-present-days">18</div>
+                <div class="stat-lbl">Days Present</div>
+              </div>
+              <div style="text-align: center;">
+                <div class="stat-val" id="stat-leave-days">2</div>
+                <div class="stat-lbl">On Leave</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Shift & Roster Details -->
+          <div class="card">
+            <div class="card-title">Current Shift</div>
+            <div class="slip-row" style="margin-bottom: 10px;">
+              <span class="slip-label">Shift Type:</span>
+              <span class="slip-value" id="dash-shift-type">Morning Shift</span>
+            </div>
+            <div class="slip-row" style="margin-bottom: 10px;">
+              <span class="slip-label">Timings:</span>
+              <span class="slip-value" id="dash-shift-timings">09:00 AM - 05:00 PM</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-label">Auto Attendance:</span>
+              <span class="slip-value" style="color: var(--success);" id="dash-shift-auto">Enabled</span>
+            </div>
+          </div>
+
+          <!-- Today's check-in status card -->
+          <div class="card">
+            <div class="card-title">Today's Activity</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <div style="font-size: 13px; color: var(--gray-500);">Last Activity</div>
+                <div style="font-size: 16px; font-weight: 600;" id="dash-last-checkin-time">-</div>
+              </div>
+              <div class="status-badge badge-out" id="dash-last-checkin-badge">
+                <div class="badge-dot"></div>
+                <span id="dash-last-checkin-text">OUT</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="switchTab('checkin')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              Go to Check-In
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SCREEN 3: CHECK-IN / MAP -->
+      <section class="screen" id="screen-checkin">
+        <div class="screen-content">
+          <div class="card">
+            <div class="card-title">Attendance Marking</div>
+            
+            <div class="checkin-selector">
+              <button id="btn-checkin-in" class="btn-toggle-log active-in" onclick="selectCheckinType('IN')">IN</button>
+              <button id="btn-checkin-out" class="btn-toggle-log" onclick="selectCheckinType('OUT')">OUT</button>
+            </div>
+
+            <!-- Coordinates display -->
+            <div class="coordinates-panel">
+              <span>Latitude: <strong id="lbl-lat">Acquiring...</strong></span>
+              <span>Longitude: <strong id="lbl-lng">Acquiring...</strong></span>
+            </div>
+
+            <!-- Map rendering -->
+            <div id="map-view"></div>
+            
+            <button class="btn btn-success" id="btn-submit-checkin" onclick="submitCheckin()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              Submit Check-In Log
+            </button>
+          </div>
+
+          <!-- Recent Logs -->
+          <div class="card">
+            <div class="card-title">Today's Checkins</div>
+            <div id="list-recent-checkins" style="max-height: 150px; overflow-y: auto;">
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center;">No logs submitted today yet.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 4: LEAVES -->
+      <section class="screen" id="screen-leaves">
+        <div class="screen-content">
+          
+          <!-- Leave Balances -->
+          <div class="card">
+            <div class="card-title">Leave Balance</div>
+            <div id="leaves-balance-container">
+              <div class="leave-item">
+                <div class="leave-type-info">
+                  <span class="leave-type-name">Casual Leave</span>
+                  <span class="leave-dates">Allocation: 15.0 days</span>
+                </div>
+                <span class="status-badge badge-in">15.0 Remaining</span>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top: 15px;" onclick="openApplyLeaveModal()">Apply for Leave</button>
+          </div>
+
+          <!-- Leave applications log -->
+          <div class="card">
+            <div class="card-title">Application Status</div>
+            <div id="leaves-list-container" style="max-height: 250px; overflow-y: auto;">
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 10px 0;">No leave applications found.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SCREEN 5: PAYROLL & SHIFTS -->
+      <section class="screen" id="screen-payroll">
+        <div class="screen-content">
+          
+          <!-- Shift Information -->
+          <div class="card">
+            <div class="card-title">Shift Planner</div>
+            <div class="slip-row" style="margin-bottom: 12px;">
+              <span class="slip-label">Current Shift:</span>
+              <span class="slip-value" id="pay-shift-type">Morning Shift</span>
+            </div>
+            <div class="slip-row" style="margin-bottom: 12px;">
+              <span class="slip-label">Time:</span>
+              <span class="slip-value" id="pay-shift-time">09:00 - 17:00</span>
+            </div>
+            <div class="slip-row">
+              <span class="slip-label">Weekly Off:</span>
+              <span class="slip-value">Sunday</span>
+            </div>
+          </div>
+
+          <!-- Payslips History -->
+          <div class="card">
+            <div class="card-title">Salary Slips</div>
+            <div id="payslips-list-container">
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 15px 0;">No submitted salary slips found.</p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- SCREEN 6: MANAGER PORTAL -->
+      <section class="screen" id="screen-manager">
+        <div class="screen-content">
+          
+          <!-- Team Live Checkin Map -->
+          <div class="card">
+            <div class="card-title">Subordinate Checkin Map</div>
+            <div id="team-map-view"></div>
+          </div>
+
+          <!-- Pending leave approvals list -->
+          <div class="manager-section-title">Pending Leave Requests</div>
+          <div id="manager-approvals-container">
+            <p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 20px 0;">No pending requests found.</p>
+          </div>
+
+          <!-- Subordinate list -->
+          <div class="manager-section-title">My Subordinates</div>
+          <div class="card" id="manager-team-list" style="padding: 10px 14px;">
+            <!-- Subordinates dynamically listed here -->
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- NAVIGATION: Visible when logged in -->
+    <nav class="app-nav" id="app-nav" style="display: none;">
+      <button class="nav-item active" id="nav-home" onclick="switchTab('home')">
+        <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Home
+      </button>
+      <button class="nav-item" id="nav-checkin" onclick="switchTab('checkin')">
+        <svg viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        Check-In
+      </button>
+      <button class="nav-item" id="nav-leaves" onclick="switchTab('leaves')">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Leaves
+      </button>
+      <button class="nav-item" id="nav-payroll" onclick="switchTab('payroll')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Payroll
+      </button>
+      <button class="nav-item" id="nav-manager" style="display: none;" onclick="switchTab('manager')">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Team
+      </button>
+    </nav>
+
+    <!-- PAYSLIP MODAL SHEET -->
+    <div class="modal-overlay" id="payslip-modal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h2 class="modal-title">Salary Slip Details</h2>
+          <button class="btn-close-modal" onclick="closePayslipModal()">×</button>
+        </div>
+        <div id="payslip-modal-content">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAVE APPLICATION MODAL SHEET -->
+    <div class="modal-overlay" id="leave-modal">
+      <div class="modal-sheet">
+        <div class="modal-header">
+          <h2 class="modal-title">Apply for Leave</h2>
+          <button class="btn-close-modal" onclick="closeApplyLeaveModal()">×</button>
+        </div>
+        <form id="leave-form" onsubmit="submitLeaveApplication(event)">
+          <div class="form-group">
+            <label for="leave-type" class="form-label">Leave Type</label>
+            <select id="leave-type" class="form-control" required>
+              <option value="Casual Leave">Casual Leave</option>
+              <option value="Sick Leave">Sick Leave</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="leave-from" class="form-label">From Date</label>
+            <input type="date" id="leave-from" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="leave-to" class="form-label">To Date</label>
+            <input type="date" id="leave-to" class="form-control" required>
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" id="leave-half-day" onchange="toggleHalfDay()" style="width: 18px; height: 18px;">
+            <label for="leave-half-day" class="form-label" style="margin-bottom: 0;">Half Day Leave</label>
+          </div>
+          <div class="form-group" id="half-day-date-group" style="display: none;">
+            <label for="leave-half-day-date" class="form-label">Half Day Date</label>
+            <input type="date" id="leave-half-day-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="leave-description" class="form-label">Reason / Description</label>
+            <textarea id="leave-description" class="form-control" rows="3" placeholder="Reason for leave..."></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary">Submit Application</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Application Logic -->
+  <script>
+    // App State Configuration
+    let currentUser = null;
+    let selectedCheckinType = 'IN';
+    let currentLat = 31.5204; // Default to Lahore coordinates (for testing)
+    let currentLng = 74.3587;
+    let map = null;
+    let mapMarker = null;
+    let teamMap = null;
+    let teamMarkers = [];
+    
+    // Cookie Helper
+    function getCookie(name) {
+      let r = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+      return r ? r[1] : undefined;
+    }
+
+    // Dynamic Toast Notifications
+    function showToast(message, isError = false) {
+      const toastContainer = document.getElementById('app-toast-container');
+      const toast = document.getElementById('app-toast');
+      const toastMsg = document.getElementById('toast-message');
+      
+      toastMsg.innerText = message;
+      if (isError) {
+        toast.style.background = 'var(--danger)';
+      } else {
+        toast.style.background = 'var(--gray-800)';
+      }
+      
+      toastContainer.classList.add('show');
+      setTimeout(() => {
+        toastContainer.classList.remove('show');
+      }, 3500);
+    }
+
+    // Generic Fetch API Wrapper
+    async function callApi(method, data = {}) {
+      try {
+        const response = await fetch(`/api/method/${method}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Frappe-CSRF-Token': getCookie('sid')
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if (response.status === 401 || (result.message && result.message.logged_in === false)) {
+          showLoginScreen();
+          return null;
+        }
+        
+        if (result.exc) {
+          const excData = JSON.parse(result.exc);
+          showToast(excData[0] || "Server error.", true);
+          return null;
+        }
+        
+        return result.message || result;
+      } catch (err) {
+        console.error("API Call error:", err);
+        showToast("Network error. Please try again.", true);
+        return null;
+      }
+    }
+
+    // Screen navigation router
+    function switchTab(tabId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      
+      const targetScreen = document.getElementById(`screen-${tabId}`);
+      const targetNav = document.getElementById(`nav-${tabId}`);
+      
+      if (targetScreen) targetScreen.classList.add('active');
+      if (targetNav) targetNav.classList.add('active');
+      
+      // Auto trigger Map resize / center updates when Check-In tab opens
+      if (tabId === 'checkin') {
+        setTimeout(initMap, 200);
+      }
+      // Auto trigger Manager Map when Manager workspace opens
+      if (tabId === 'manager') {
+        setTimeout(initTeamMap, 200);
+      }
+    }
+
+    function showLoginScreen() {
+      currentUser = null;
+      document.getElementById('app-header').style.display = 'none';
+      document.getElementById('app-nav').style.display = 'none';
+      switchTab('login');
+    }
+
+    // 1. LOGIN MODULE
+    async function handleLogin(e) {
+      e.preventDefault();
+      const usr = document.getElementById('login-email').value;
+      const pwd = document.getElementById('login-password').value;
+      const btn = document.getElementById('btn-submit-login');
+      
+      btn.disabled = true;
+      btn.innerText = "Signing in...";
+      
+      try {
+        const response = await fetch('/api/method/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ usr, pwd })
+        });
+        
+        const res = await response.json();
+        if (response.ok && res.message === "Logged In") {
+          showToast("Welcome back!");
+          await bootApp();
+        } else {
+          showToast(res.message || "Invalid credentials.", true);
+        }
+      } catch (err) {
+        showToast("Error authenticating. Verify network.", true);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Login";
+      }
+    }
+
+    // Log out action
+    document.getElementById('btn-logout-action').addEventListener('click', async () => {
+      await fetch('/api/method/logout', { method: 'POST' });
+      showToast("Logged out successfully.");
+      showLoginScreen();
+    });
+
+    // Bootstraps employee profile and sets UI values
+    async function bootApp() {
+      const data = await callApi('hr_mobile_app.api.get_hr_app_user_info');
+      if (!data || data.logged_in === false) {
+        showLoginScreen();
+        return;
+      }
+      
+      if (data.has_employee === false) {
+        showToast("User is logged in but no Employee document is linked.", true);
+        showLoginScreen();
+        return;
+      }
+      
+      currentUser = data;
+      
+      // Update Header Profile
+      document.getElementById('header-user-name').innerText = data.employee.employee_name;
+      document.getElementById('header-user-role').innerText = data.employee.designation || 'Employee';
+      document.getElementById('header-avatar-initials').innerText = data.employee.employee_name.charAt(0);
+      
+      // Update Checkin Status badges
+      updateCheckinStatus(data.last_checkin);
+      
+      // Update Dash Timings & Shifts
+      if (data.shift_details) {
+        document.getElementById('dash-shift-type').innerText = data.shift_details.shift_type;
+        document.getElementById('dash-shift-timings').innerText = `${formatTimeStr(data.shift_details.start_time)} - ${formatTimeStr(data.shift_details.end_time)}`;
+        document.getElementById('dash-shift-auto').innerText = data.shift_details.enable_auto_attendance ? 'Enabled' : 'Disabled';
+        
+        document.getElementById('pay-shift-type').innerText = data.shift_details.shift_type;
+        document.getElementById('pay-shift-time').innerText = `${formatTimeStr(data.shift_details.start_time)} - ${formatTimeStr(data.shift_details.end_time)}`;
+      }
+      
+      // Show/Hide Manager Nav Tab
+      if (data.is_manager) {
+        document.getElementById('nav-manager').style.display = 'flex';
+      } else {
+        document.getElementById('nav-manager').style.display = 'none';
+      }
+      
+      // Render components
+      renderLeaveBalances(data.leave_summary);
+      await fetchLeaves();
+      await fetchCheckins();
+      await fetchSalarySlips();
+      
+      if (data.is_manager) {
+        await fetchManagerWorkspace();
+      }
+      
+      // Reveal app frame
+      document.getElementById('app-header').style.display = 'block';
+      document.getElementById('app-nav').style.display = 'flex';
+      switchTab('home');
+      
+      // Get location coordinates in background
+      getLocation();
+    }
+
+    function formatTimeStr(timeStr) {
+      if (!timeStr) return "00:00";
+      // Split 09:00:00
+      const parts = timeStr.split(':');
+      if (parts.length >= 2) {
+        let hrs = parseInt(parts[0]);
+        const mins = parts[1];
+        const ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12;
+        hrs = hrs ? hrs : 12; // the hour '0' should be '12'
+        return `${hrs}:${mins} ${ampm}`;
+      }
+      return timeStr;
+    }
+
+    function updateCheckinStatus(checkinDoc) {
+      const headerBadge = document.getElementById('header-checkin-badge');
+      const headerText = document.getElementById('header-checkin-text');
+      const dashBadge = document.getElementById('dash-last-checkin-badge');
+      const dashText = document.getElementById('dash-last-checkin-text');
+      const dashTime = document.getElementById('dash-last-checkin-time');
+      
+      if (checkinDoc) {
+        const timeObj = new Date(checkinDoc.time);
+        const formattedTime = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        dashTime.innerText = `${timeObj.toLocaleDateString()} at ${formattedTime}`;
+        
+        if (checkinDoc.log_type === 'IN') {
+          headerBadge.className = 'status-badge badge-in';
+          headerText.innerText = 'IN';
+          dashBadge.className = 'status-badge badge-in';
+          dashText.innerText = 'IN';
+          // Set toggle select to OUT by default
+          selectCheckinType('OUT');
+        } else {
+          headerBadge.className = 'status-badge badge-out';
+          headerText.innerText = 'OUT';
+          dashBadge.className = 'status-badge badge-out';
+          dashText.innerText = 'OUT';
+          selectCheckinType('IN');
+        }
+      } else {
+        dashTime.innerText = 'No check-ins today';
+        headerBadge.className = 'status-badge badge-out';
+        headerText.innerText = 'OUT';
+        dashBadge.className = 'status-badge badge-out';
+        dashText.innerText = 'OUT';
+        selectCheckinType('IN');
+      }
+    }
+
+    // 2. CHECK-IN & LOCATION MODULE
+    function selectCheckinType(type) {
+      selectedCheckinType = type;
+      const btnIn = document.getElementById('btn-checkin-in');
+      const btnOut = document.getElementById('btn-checkin-out');
+      
+      if (type === 'IN') {
+        btnIn.className = 'btn-toggle-log active-in';
+        btnOut.className = 'btn-toggle-log';
+      } else {
+        btnIn.className = 'btn-toggle-log';
+        btnOut.className = 'btn-toggle-log active-out';
+      }
+    }
+
+    // Geolocation retrieval
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            currentLat = position.coords.latitude;
+            currentLng = position.coords.longitude;
+            document.getElementById('lbl-lat').innerText = currentLat.toFixed(5);
+            document.getElementById('lbl-lng').innerText = currentLng.toFixed(5);
+            
+            if (map && mapMarker) {
+              const newPos = [currentLat, currentLng];
+              map.setView(newPos, 16);
+              mapMarker.setLatLng(newPos);
+            }
+          },
+          (error) => {
+            console.warn("Geolocation permission blocked or unavailable. Using default coordinates.");
+            document.getElementById('lbl-lat').innerText = currentLat.toFixed(5) + " (Mocked)";
+            document.getElementById('lbl-lng').innerText = currentLng.toFixed(5) + " (Mocked)";
+          },
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      } else {
+        document.getElementById('lbl-lat').innerText = currentLat.toFixed(5) + " (Not Supported)";
+        document.getElementById('lbl-lng').innerText = currentLng.toFixed(5) + " (Not Supported)";
+      }
+    }
+
+    // Initializing Leaflet map
+    function initMap() {
+      const container = document.getElementById('map-view');
+      // Prevent recreation issues
+      if (map) {
+        map.invalidateSize();
+        return;
+      }
+      
+      map = L.map(container).setView([currentLat, currentLng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(map);
+      
+      mapMarker = L.marker([currentLat, currentLng]).addTo(map)
+        .bindPopup('Your current coordinates.')
+        .openPopup();
+        
+      setTimeout(() => map.invalidateSize(), 300);
+    }
+
+    // Submit Checkin Log
+    async function submitCheckin() {
+      const btn = document.getElementById('btn-submit-checkin');
+      btn.disabled = true;
+      btn.innerText = "Submitting Check-In...";
+      
+      const payload = {
+        log_type: selectedCheckinType,
+        latitude: currentLat,
+        longitude: currentLng
+      };
+      
+      const res = await callApi('hr_mobile_app.api.mark_employee_checkin', payload);
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Submit Check-In Log`;
+      
+      if (res && res.status === 'success') {
+        showToast(res.message);
+        
+        // Update header and home screen widgets
+        if (currentUser) {
+          currentUser.last_checkin = res.checkin;
+          updateCheckinStatus(res.checkin);
+        }
+        
+        // Update recent logs list
+        await fetchCheckins();
+      }
+    }
+
+    async function fetchCheckins() {
+      const data = await callApi('hr_mobile_app.api.get_employee_checkins');
+      if (!data) return;
+      
+      const listContainer = document.getElementById('list-recent-checkins');
+      if (data.length === 0) {
+        listContainer.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No logs submitted today yet.</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      // Calculate dashboard stats: count days checked in this month
+      let presentDaysCount = 0;
+      let uniqueDates = new Set();
+      
+      data.forEach(item => {
+        const timeObj = new Date(item.time);
+        uniqueDates.add(timeObj.toDateString());
+        
+        const timeStr = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateStr = timeObj.toLocaleDateString();
+        const badgeClass = item.log_type === 'IN' ? 'badge-in' : 'badge-out';
+        const coordsStr = (item.latitude && item.longitude) ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}` : 'No GPS';
+        
+        html += `
+          <div class="leave-item">
+            <div class="leave-type-info">
+              <span class="leave-type-name">${item.log_type} Log - ${timeStr}</span>
+              <span class="leave-dates">${dateStr} | GPS: ${coordsStr}</span>
+            </div>
+            <span class="status-badge ${badgeClass}">${item.log_type}</span>
+          </div>
+        `;
+      });
+      
+      listContainer.innerHTML = html;
+      
+      // Update attendance rate stats (mock monthly computation based on checkins)
+      presentDaysCount = uniqueDates.size;
+      const totalWorkDaysInMonth = 22; // Average business days in a month
+      const attendancePct = Math.min(Math.round((presentDaysCount / totalWorkDaysInMonth) * 100), 100);
+      
+      document.getElementById('stat-present-days').innerText = presentDaysCount;
+      document.getElementById('text-attendance-pct').innerText = `${attendancePct}%`;
+      
+      // Update progress ring offset
+      const strokeDashoffset = 251.2 - (251.2 * attendancePct) / 100;
+      document.getElementById('progress-attendance-ring').style.strokeDashoffset = strokeDashoffset;
+    }
+
+    // 3. LEAVE APPLICATIONS MODULE
+    function renderLeaveBalances(summary = []) {
+      const container = document.getElementById('leaves-balance-container');
+      if (summary.length === 0) {
+        container.innerHTML = `
+          <div class="leave-item">
+            <div class="leave-type-info">
+              <span class="leave-type-name">Casual Leave</span>
+              <span class="leave-dates">Allocation: Not configured</span>
+            </div>
+            <span class="status-badge badge-pending">0.0 Balance</span>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      summary.forEach(item => {
+        html += `
+          <div class="leave-item">
+            <div class="leave-type-info">
+              <span class="leave-type-name">${item.leave_type}</span>
+              <span class="leave-dates">Allocated: ${item.allocated} | Taken: ${item.taken}</span>
+            </div>
+            <span class="status-badge badge-in">${item.balance} Available</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    async function fetchLeaves() {
+      const data = await callApi('frappe.client.get_list', {
+        doctype: 'Leave Application',
+        fields: ['name', 'leave_type', 'from_date', 'to_date', 'total_leave_days', 'status', 'posting_date'],
+        filters: currentUser ? { employee: currentUser.employee.name } : {},
+        order_by: 'posting_date desc',
+        limit_page_length: 30
+      });
+      
+      if (!data) return;
+      
+      const container = document.getElementById('leaves-list-container');
+      if (data.length === 0) {
+        container.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 10px 0;">No leave applications found.</p>';
+        return;
+      }
+      
+      let html = '';
+      data.forEach(item => {
+        let badgeClass = 'badge-pending';
+        if (item.status === 'Approved') badgeClass = 'badge-in';
+        if (item.status === 'Rejected') badgeClass = 'badge-out';
+        
+        html += `
+          <div class="leave-item">
+            <div class="leave-type-info">
+              <span class="leave-type-name">${item.leave_type} (${item.total_leave_days} Days)</span>
+              <span class="leave-dates">From ${item.from_date} to ${item.to_date}</span>
+            </div>
+            <span class="status-badge ${badgeClass}">${item.status}</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+      
+      // Update Leave stats box on home
+      const approvedLeavesCount = data.filter(l => l.status === 'Approved').reduce((acc, l) => acc + l.total_leave_days, 0);
+      document.getElementById('stat-leave-days').innerText = approvedLeavesCount;
+    }
+
+    function openApplyLeaveModal() {
+      document.getElementById('leave-modal').style.display = 'flex';
+    }
+
+    function closeApplyLeaveModal() {
+      document.getElementById('leave-modal').style.display = 'none';
+      document.getElementById('leave-form').reset();
+    }
+
+    function toggleHalfDay() {
+      const checked = document.getElementById('leave-half-day').checked;
+      document.getElementById('half-day-date-group').style.display = checked ? 'block' : 'none';
+    }
+
+    async function submitLeaveApplication(e) {
+      e.preventDefault();
+      
+      const leave_type = document.getElementById('leave-type').value;
+      const from_date = document.getElementById('leave-from').value;
+      const to_date = document.getElementById('leave-to').value;
+      const half_day = document.getElementById('leave-half-day').checked ? 1 : 0;
+      const half_day_date = document.getElementById('leave-half-day-date').value || null;
+      const description = document.getElementById('leave-description').value;
+      
+      const payload = { leave_type, from_date, to_date, half_day, half_day_date, description };
+      
+      const res = await callApi('hr_mobile_app.api.apply_employee_leave', payload);
+      if (res && res.status === 'success') {
+        showToast(res.message);
+        closeApplyLeaveModal();
+        await fetchLeaves();
+      }
+    }
+
+    // 4. PAYROLL & SALARY SLIPS MODULE
+    async function fetchSalarySlips() {
+      const data = await callApi('hr_mobile_app.api.get_employee_salary_slips');
+      if (!data) return;
+      
+      const container = document.getElementById('payslips-list-container');
+      if (data.length === 0) {
+        container.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 15px 0;">No submitted salary slips found.</p>';
+        return;
+      }
+      
+      let html = '';
+      data.forEach(item => {
+        const periodStr = `${item.start_date} to ${item.end_date}`;
+        html += `
+          <div class="payslip-item" onclick="viewPayslipDetail('${item.name}')">
+            <div class="payslip-info">
+              <span class="payslip-id">${item.name}</span>
+              <span class="payslip-period">${periodStr}</span>
+            </div>
+            <span class="payslip-amount">${item.currency} ${item.net_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    async function viewPayslipDetail(name) {
+      const data = await callApi('hr_mobile_app.api.get_salary_slip_details', { name });
+      if (!data) return;
+      
+      const content = document.getElementById('payslip-modal-content');
+      
+      let earningsHtml = '';
+      data.earnings.forEach(e => {
+        earningsHtml += `
+          <tr>
+            <td>${e.salary_component}</td>
+            <td class="amount-col">${data.currency} ${e.amount.toLocaleString([], {minimumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      });
+      
+      let deductionsHtml = '';
+      data.deductions.forEach(d => {
+        deductionsHtml += `
+          <tr>
+            <td>${d.salary_component}</td>
+            <td class="amount-col">${data.currency} ${d.amount.toLocaleString([], {minimumFractionDigits: 2})}</td>
+          </tr>
+        `;
+      });
+      
+      content.innerHTML = `
+        <div class="slip-section">
+          <div class="slip-row">
+            <span class="slip-label">Employee:</span>
+            <span class="slip-value">${data.employee_name} (${data.employee})</span>
+          </div>
+          <div class="slip-row">
+            <span class="slip-label">Period:</span>
+            <span class="slip-value">${data.start_date} to ${data.end_date}</span>
+          </div>
+          <div class="slip-row">
+            <span class="slip-label">Posting Date:</span>
+            <span class="slip-value">${data.posting_date}</span>
+          </div>
+          <div class="slip-row">
+            <span class="slip-label">Payment Days:</span>
+            <span class="slip-value">${data.payment_days} / ${data.total_working_days} days</span>
+          </div>
+        </div>
+        
+        <div class="slip-section">
+          <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Earnings</h4>
+          <table class="slip-component-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th class="amount-col">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${earningsHtml || '<tr><td colspan="2">No earnings configured.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="slip-section">
+          <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 8px;">Deductions</h4>
+          <table class="slip-component-table">
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th class="amount-col">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${deductionsHtml || '<tr><td colspan="2">No deductions configured.</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="slip-section" style="border-bottom: none; padding-bottom: 0;">
+          <div class="slip-row" style="font-size: 14px; font-weight: 700; color: var(--gray-800);">
+            <span>Gross Pay:</span>
+            <span>${data.currency} ${data.gross_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+          </div>
+          <div class="slip-row" style="font-size: 14px; font-weight: 700; color: var(--danger);">
+            <span>Total Deductions:</span>
+            <span>${data.currency} ${data.total_deduction.toLocaleString([], {minimumFractionDigits: 2})}</span>
+          </div>
+          <div class="slip-row" style="font-size: 16px; font-weight: 800; color: var(--primary); margin-top: 8px;">
+            <span>Net Take-Home:</span>
+            <span>${data.currency} ${data.net_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('payslip-modal').style.display = 'flex';
+    }
+
+    function closePayslipModal() {
+      document.getElementById('payslip-modal').style.display = 'none';
+    }
+
+    // 5. MANAGER WORKSPACE MODULE
+    async function fetchManagerWorkspace() {
+      // 1. Fetch pending approvals
+      const pending = await callApi('hr_mobile_app.api.get_pending_leave_applications');
+      const approvalsContainer = document.getElementById('manager-approvals-container');
+      
+      if (!pending || pending.length === 0) {
+        approvalsContainer.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center; padding: 20px 0;">No pending requests found.</p>';
+      } else {
+        let approvalsHtml = '';
+        pending.forEach(item => {
+          approvalsHtml += `
+            <div class="approval-card" id="leave-card-${item.name}">
+              <div class="approval-header">
+                <span class="approval-emp-name">${item.employee_name} (${item.employee})</span>
+                <span class="status-badge badge-pending">Pending</span>
+              </div>
+              <div class="approval-details">
+                <strong>${item.leave_type}</strong> | ${item.total_leave_days} days (${item.from_date} to ${item.to_date})
+                ${item.description ? `<br><span style="font-style: italic; color: var(--gray-600);">"${item.description}"</span>` : ''}
+              </div>
+              <div class="approval-actions">
+                <button class="btn-approve" onclick="handleLeaveAction('${item.name}', 'approve')">Approve</button>
+                <button class="btn-reject" onclick="handleLeaveAction('${item.name}', 'reject')">Reject</button>
+              </div>
+            </div>
+          `;
+        });
+        approvalsContainer.innerHTML = approvalsHtml;
+      }
+      
+      // 2. Fetch subordinate list
+      const teamList = document.getElementById('manager-team-list');
+      if (currentUser && currentUser.subordinates) {
+        let teamHtml = '';
+        currentUser.subordinates.forEach(s => {
+          teamHtml += `
+            <div class="leave-item">
+              <div class="leave-type-info">
+                <span class="leave-type-name">${s.employee_name}</span>
+                <span class="leave-dates">${s.designation || 'Staff'} | ${s.department}</span>
+              </div>
+              <span class="status-badge badge-in">Active</span>
+            </div>
+          `;
+        });
+        teamList.innerHTML = teamHtml || '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No subordinates configured.</p>';
+      }
+    }
+
+    async function handleLeaveAction(name, action) {
+      const card = document.getElementById(`leave-card-${name}`);
+      const btnApprove = card.querySelector('.btn-approve');
+      const btnReject = card.querySelector('.btn-reject');
+      
+      btnApprove.disabled = true;
+      btnReject.disabled = true;
+      
+      const res = await callApi('hr_mobile_app.api.action_on_leave_application', { name, action });
+      if (res && res.status === 'success') {
+        showToast(res.message);
+        // Refresh manager dashboard
+        await fetchManagerWorkspace();
+        await fetchLeaves(); // Refresh leave totals as well
+      } else {
+        btnApprove.disabled = false;
+        btnReject.disabled = false;
+      }
+    }
+
+    // Init Leaflet map for subordinates (team locations)
+    async function initTeamMap() {
+      const container = document.getElementById('team-map-view');
+      if (teamMap) {
+        teamMap.invalidateSize();
+        return;
+      }
+      
+      teamMap = L.map(container).setView([currentLat, currentLng], 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+      }).addTo(teamMap);
+      
+      // Fetch checkins for subordinates
+      const checkins = await callApi('hr_mobile_app.api.get_team_checkins');
+      if (!checkins) return;
+      
+      // Clean old markers
+      teamMarkers.forEach(m => m.remove());
+      teamMarkers = [];
+      
+      if (checkins.length === 0) {
+        // Add a default fallback marker for team representation
+        const mockSub1 = L.marker([currentLat + 0.005, currentLng + 0.005]).addTo(teamMap)
+          .bindPopup('<strong>John Doe</strong><br>Last Check-In: IN<br>Location: Accounts Office');
+        teamMarkers.push(mockSub1);
+      } else {
+        const addedEmp = new Set();
+        checkins.forEach(log => {
+          // Plot only the latest checkin for each subordinate
+          if (log.latitude && log.longitude && !addedEmp.has(log.employee)) {
+            addedEmp.add(log.employee);
+            const timeObj = new Date(log.time);
+            const marker = L.marker([log.latitude, log.longitude]).addTo(teamMap)
+              .bindPopup(`<strong>${log.employee_name}</strong><br>Log Type: ${log.log_type}<br>Time: ${timeObj.toLocaleTimeString()}`);
+            teamMarkers.push(marker);
+          }
+        });
+      }
+      
+      setTimeout(() => teamMap.invalidateSize(), 300);
+    }
+
+    // Initialization trigger
+    window.addEventListener('DOMContentLoaded', async () => {
+      // Check if user is already logged in
+      const data = await callApi('hr_mobile_app.api.get_hr_app_user_info');
+      if (data && data.logged_in) {
+        await bootApp();
+      } else {
+        showLoginScreen();
+      }
+    });
+
+  </script>
+</body>
+</html>
