@@ -1767,7 +1767,8 @@
       return 'Server error.';
     }
 
-    async function callApi(method, data = {}) {
+    async function callApi(method, data = {}, opts = {}) {
+      const silent = !!(opts && opts.silent);
       try {
         const csrf = getCookie('csrf_token') || (window.csrf_token || '') || getCookie('sid');
         const response = await fetch(`/api/method/${method}`, {
@@ -1787,14 +1788,16 @@
         }
         
         if (result.exc) {
-          showToast(extractApiError(result), true);
+          const msg = extractApiError(result);
+          if (!silent) showToast(msg, true);
+          console.warn(method, msg);
           return null;
         }
         
         return result.message || result;
       } catch (err) {
         console.error("API Call error:", err);
-        showToast("Network error. Please try again.", true);
+        if (!silent) showToast("Network error. Please try again.", true);
         return null;
       }
     }
@@ -2233,8 +2236,16 @@
     async function loadMonthlyCalendar() {
       const y = calendarCursor.getFullYear();
       const m = calendarCursor.getMonth() + 1;
-      const data = await callApi('hr_mobile_app.api.get_monthly_checkin_calendar', { year: y, month: m });
-      if (!data) return;
+      const data = await callApi('hr_mobile_app.api.get_monthly_checkin_calendar', { year: y, month: m }, { silent: true });
+      if (!data) {
+        const daysEl = document.getElementById('cal-days');
+        if (daysEl) daysEl.innerHTML = '';
+        const label = document.getElementById('cal-month-label');
+        if (label) label.innerText = 'Unavailable';
+        const detail = document.getElementById('cal-day-detail');
+        if (detail) detail.innerText = 'Could not load calendar. Pull to refresh / reload the app.';
+        return;
+      }
       calendarData = data;
       document.getElementById('cal-month-label').innerText = data.month_label || `${y}-${m}`;
       document.getElementById('rec-present').innerText = data.summary?.present_days || 0;
@@ -2353,7 +2364,7 @@
         payload.report_date = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
       }
 
-      const data = await callApi('hr_mobile_app.api.get_team_attendance_report', payload);
+      const data = await callApi('hr_mobile_app.api.get_team_attendance_report', payload, { silent: true });
       if (!data) {
         board.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">Could not load report.</p>';
         return;
