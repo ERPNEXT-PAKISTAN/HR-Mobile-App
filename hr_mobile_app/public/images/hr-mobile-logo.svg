@@ -1,6 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="14" fill="#0F766E"/>
-  <rect x="20" y="10" width="24" height="44" rx="4" fill="#ECFEFF" stroke="#99F6E4" stroke-width="2"/>
-  <circle cx="32" cy="47" r="2.2" fill="#0F766E"/>
-  <rect x="28" y="13.5" width="8" height="2" rx="1" fill="#0F766E"/>
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hrBg" x1="12" y1="8" x2="86" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1F33"/>
+      <stop offset="1" stop-color="#155E75"/>
+    </linearGradient>
+    <linearGradient id="hrScreen" x1="34" y1="22" x2="62" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F0FDFA"/>
+      <stop offset="1" stop-color="#CCFBF1"/>
+    </linearGradient>
+    <linearGradient id="hrAccent" x1="36" y1="34" x2="60" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F766E"/>
+      <stop offset="1" stop-color="#0E7490"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App tile -->
+  <rect x="6" y="6" width="84" height="84" rx="22" fill="url(#hrBg)"/>
+
+  <!-- Soft highlight -->
+  <path d="M28 12C36 10 58 10 68 14C52 18 34 22 28 12Z" fill="white" fill-opacity="0.08"/>
+
+  <!-- Phone body -->
+  <rect x="32" y="18" width="32" height="60" rx="8" fill="url(#hrScreen)"/>
+  <rect x="32" y="18" width="32" height="60" rx="8" stroke="#99F6E4" stroke-opacity="0.55" stroke-width="1.5"/>
+
+  <!-- Speaker -->
+  <rect x="42" y="22" width="12" height="2.5" rx="1.25" fill="#0F766E" fill-opacity="0.35"/>
+
+  <!-- Home indicator -->
+  <rect x="42" y="70.5" width="12" height="2.5" rx="1.25" fill="#0F766E" fill-opacity="0.28"/>
+
+  <!-- People mark (HR) -->
+  <circle cx="42.5" cy="40" r="4.2" fill="url(#hrAccent)"/>
+  <circle cx="53.5" cy="40" r="4.2" fill="url(#hrAccent)" fill-opacity="0.85"/>
+  <path d="M34.5 54.5C35.2 49.8 38.4 47 42.5 47C46.6 47 49.8 49.8 50.5 54.5" stroke="url(#hrAccent)" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M45.5 54.5C46.2 49.8 49.4 47 53.5 47C57.6 47 60.8 49.8 61.5 54.5" stroke="url(#hrAccent)" stroke-width="3.2" stroke-linecap="round" stroke-opacity="0.85"/>
+
+  <!-- Signal pulse accent -->
+  <path d="M61 30C63.2 32.2 63.2 35.8 61 38" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M64.5 27.5C68.2 31.2 68.2 36.8 64.5 40.5" stroke="#5EEAD4" stroke-width="2" stroke-linecap="round" stroke-opacity="0.55" fill="none"/>
 </svg>

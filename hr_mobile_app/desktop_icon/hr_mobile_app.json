@@ -1,6 +1,6 @@
 {
  "app": "hr_mobile_app",
- "bg_color": "teal",
+ "bg_color": "gray",
  "creation": "2026-08-02 00:00:00.000000",
  "docstatus": 0,
  "doctype": "Desktop Icon",
@@ -12,7 +12,7 @@
  "link_to": "HR Mobile App",
  "link_type": "Workspace Sidebar",
  "logo_url": "/assets/hr_mobile_app/images/hr-mobile-logo.svg",
- "modified": "2026-08-02 00:00:00.000000",
+ "modified": "2026-08-02 00:20:00.000000",
  "modified_by": "Administrator",
  "name": "HR Mobile App",
  "owner": "Administrator",
