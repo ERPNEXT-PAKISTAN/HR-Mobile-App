@@ -17,11 +17,11 @@
   <style>
     /* Premium CSS Variables & Reset */
     :root {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --primary-light: #e0e7ff;
-      --success: #10b981;
-      --success-light: #d1fae5;
+      --primary: #06B58B;
+      --primary-hover: #048F6E;
+      --primary-light: #E6FBF3;
+      --success: #06B58B;
+      --success-light: #E6FBF3;
       --warning: #f59e0b;
       --warning-light: #fef3c7;
       --danger: #ef4444;
@@ -48,7 +48,7 @@
       --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
       --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --shadow-premium: 0 20px 25px -5px rgba(79, 70, 229, 0.1), 0 10px 10px -5px rgba(79, 70, 229, 0.04);
+      --shadow-premium: 0 20px 25px -5px rgba(6, 181, 139, 0.15), 0 10px 10px -5px rgba(6, 181, 139, 0.06);
       
       --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -62,7 +62,7 @@
 
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      background: linear-gradient(135deg, #0B313A 0%, #064E3B 100%);
       color: var(--gray-900);
       min-height: 100vh;
       display: flex;
@@ -107,7 +107,7 @@
 
     /* App Shell Elements */
     .app-header {
-      background: linear-gradient(135deg, var(--primary) 0%, #312e81 100%);
+      background: linear-gradient(135deg, #06B58B 0%, #048F6E 100%);
       color: #ffffff;
       padding: 20px 20px 25px 20px;
       border-bottom-left-radius: var(--radius-lg);
@@ -160,7 +160,7 @@
     .user-avatar {
       width: 42px;
       height: 42px;
-      background: linear-gradient(135deg, #a78bfa 0%, #6d28d9 100%);
+      background: linear-gradient(135deg, #A1EEC9 0%, #06B58B 100%);
       border-radius: 50%;
       border: 2px solid rgba(255, 255, 255, 0.8);
       display: flex;
@@ -363,7 +363,7 @@
 
     /* Screen 1: Login Screen */
     #screen-login {
-      background: linear-gradient(135deg, #e0e7ff 0%, #ffffff 100%);
+      background: linear-gradient(135deg, #E6FBF3 0%, #ffffff 100%);
       justify-content: center;
     }
 
@@ -534,13 +534,107 @@
 
     .coordinates-panel {
       font-size: 12px;
-      color: var(--gray-600);
+      color: var(--gray-700);
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 8px;
       margin-bottom: 12px;
-      padding: 8px 12px;
-      background-color: var(--gray-100);
+      padding: 12px;
+      background: linear-gradient(135deg, #E6FBF3 0%, #F8FAFC 100%);
+      border: 1px solid #A1EEC9;
+      border-radius: var(--radius-md);
+    }
+
+    .geo-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .geo-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #0B313A;
+      color: #A1EEC9;
+    }
+
+    .geo-status-pill.ready { background: #06B58B; color: #fff; }
+    .geo-status-pill.error { background: #dc2626; color: #fff; }
+    .geo-status-pill.locating { background: #0B313A; color: #A1EEC9; }
+
+    .geo-status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px rgba(161, 238, 201, 0.35);
+    }
+
+    .geo-coords-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .geo-coord-box {
+      background: #fff;
+      border: 1px solid #D1FAE5;
       border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+
+    .geo-coord-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .geo-coord-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #0B313A;
+      word-break: break-all;
+    }
+
+    .geo-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+
+    .btn-geo-refresh {
+      border: none;
+      background: #0B313A;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .btn-geo-refresh:active { opacity: 0.85; }
+
+    .geo-address {
+      font-size: 12px;
+      color: #0B313A;
+      line-height: 1.35;
+      font-weight: 500;
     }
 
     /* Map container */
@@ -900,7 +994,7 @@
       <div class="header-top">
         <div class="logo-container">
           <div class="logo-icon">H</div>
-          <div class="logo-title">HR portal</div>
+          <div class="logo-title">HR Mobile</div>
         </div>
         <button class="btn-logout" id="btn-logout-action">Logout</button>
       </div>
@@ -1005,6 +1099,20 @@
                 <span id="dash-last-checkin-text">OUT</span>
               </div>
             </div>
+            <div class="coordinates-panel" style="margin-bottom: 14px;">
+              <div class="geo-status-row">
+                <span class="geo-status-pill locating" id="dash-geo-status-pill">
+                  <span class="geo-status-dot"></span>
+                  <span id="dash-geo-status-text">Locating</span>
+                </span>
+                <span style="font-size:11px;color:var(--gray-500);" id="dash-geo-accuracy">Accuracy —</span>
+              </div>
+              <div class="geo-address" id="dash-geo-address">Fetching your current geolocation…</div>
+              <div class="geo-meta-row">
+                <span>Lat <strong id="dash-geo-lat">—</strong></span>
+                <span>Lng <strong id="dash-geo-lng">—</strong></span>
+              </div>
+            </div>
             <button class="btn btn-primary" onclick="switchTab('checkin')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
               Go to Check-In
@@ -1025,10 +1133,30 @@
               <button id="btn-checkin-out" class="btn-toggle-log" onclick="selectCheckinType('OUT')">OUT</button>
             </div>
 
-            <!-- Coordinates display -->
-            <div class="coordinates-panel">
-              <span>Latitude: <strong id="lbl-lat">Acquiring...</strong></span>
-              <span>Longitude: <strong id="lbl-lng">Acquiring...</strong></span>
+            <!-- Geolocation display -->
+            <div class="coordinates-panel" id="geo-panel">
+              <div class="geo-status-row">
+                <span class="geo-status-pill locating" id="geo-status-pill">
+                  <span class="geo-status-dot"></span>
+                  <span id="geo-status-text">Locating</span>
+                </span>
+                <button type="button" class="btn-geo-refresh" onclick="refreshLocation()">Refresh GPS</button>
+              </div>
+              <div class="geo-coords-grid">
+                <div class="geo-coord-box">
+                  <span class="geo-coord-label">Latitude</span>
+                  <div class="geo-coord-value" id="lbl-lat">Acquiring...</div>
+                </div>
+                <div class="geo-coord-box">
+                  <span class="geo-coord-label">Longitude</span>
+                  <div class="geo-coord-value" id="lbl-lng">Acquiring...</div>
+                </div>
+              </div>
+              <div class="geo-meta-row">
+                <span>Accuracy: <strong id="lbl-accuracy">—</strong></span>
+                <span id="lbl-geo-updated">Waiting for GPS…</span>
+              </div>
+              <div class="geo-address" id="lbl-geo-address">Map will show your live location for check-in.</div>
             </div>
 
             <!-- Map rendering -->
@@ -1488,32 +1616,111 @@
       }
     }
 
-    // Geolocation retrieval
-    function getLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            currentLat = position.coords.latitude;
-            currentLng = position.coords.longitude;
-            document.getElementById('lbl-lat').innerText = currentLat.toFixed(5);
-            document.getElementById('lbl-lng').innerText = currentLng.toFixed(5);
-            
-            if (map && mapMarker) {
-              const newPos = [currentLat, currentLng];
-              map.setView(newPos, 16);
-              mapMarker.setLatLng(newPos);
-            }
-          },
-          (error) => {
-            console.warn("Geolocation permission blocked or unavailable. Using default coordinates.");
-            document.getElementById('lbl-lat').innerText = currentLat.toFixed(5) + " (Mocked)";
-            document.getElementById('lbl-lng').innerText = currentLng.toFixed(5) + " (Mocked)";
-          },
-          { enableHighAccuracy: true, timeout: 8000 }
+    // Geolocation retrieval + live accuracy display
+    let geoWatchId = null;
+    let currentAccuracy = null;
+
+    function setGeoStatus(state, text) {
+      const pill = document.getElementById('geo-status-pill');
+      const label = document.getElementById('geo-status-text');
+      if (!pill || !label) return;
+      pill.className = 'geo-status-pill ' + state;
+      label.innerText = text;
+    }
+
+    function applyPosition(position, sourceLabel) {
+      currentLat = position.coords.latitude;
+      currentLng = position.coords.longitude;
+      currentAccuracy = position.coords.accuracy;
+      const latEl = document.getElementById('lbl-lat');
+      const lngEl = document.getElementById('lbl-lng');
+      const accEl = document.getElementById('lbl-accuracy');
+      const updEl = document.getElementById('lbl-geo-updated');
+      if (latEl) latEl.innerText = currentLat.toFixed(6);
+      if (lngEl) lngEl.innerText = currentLng.toFixed(6);
+      if (accEl) accEl.innerText = currentAccuracy ? `±${Math.round(currentAccuracy)} m` : '—';
+      if (updEl) updEl.innerText = (sourceLabel || 'Updated') + ' ' + new Date().toLocaleTimeString();
+      setGeoStatus('ready', 'GPS Ready');
+
+      if (map && mapMarker) {
+        const newPos = [currentLat, currentLng];
+        map.setView(newPos, 16);
+        mapMarker.setLatLng(newPos);
+        mapMarker.bindPopup(`You are here<br>${currentLat.toFixed(5)}, ${currentLng.toFixed(5)}`).openPopup();
+      }
+
+      const dashLat = document.getElementById('dash-geo-lat');
+      const dashLng = document.getElementById('dash-geo-lng');
+      const dashAcc = document.getElementById('dash-geo-accuracy');
+      const dashPill = document.getElementById('dash-geo-status-pill');
+      const dashText = document.getElementById('dash-geo-status-text');
+      if (dashLat) dashLat.innerText = currentLat.toFixed(5);
+      if (dashLng) dashLng.innerText = currentLng.toFixed(5);
+      if (dashAcc) dashAcc.innerText = currentAccuracy ? `Accuracy ±${Math.round(currentAccuracy)} m` : 'Accuracy —';
+      if (dashPill && dashText) {
+        dashPill.className = 'geo-status-pill ready';
+        dashText.innerText = 'GPS Ready';
+      }
+      reverseGeocode(currentLat, currentLng);
+    }
+
+    async function reverseGeocode(lat, lng) {
+      const el = document.getElementById('lbl-geo-address');
+      if (!el) return;
+      try {
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) throw new Error('geocode failed');
+        const data = await res.json();
+        const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        el.innerText = address;
+        const dashAddr = document.getElementById('dash-geo-address');
+        if (dashAddr) dashAddr.innerText = address;
+      } catch (e) {
+        const fallback = `Coordinates ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        el.innerText = fallback;
+        const dashAddr = document.getElementById('dash-geo-address');
+        if (dashAddr) dashAddr.innerText = fallback;
+      }
+    }
+
+    function refreshLocation() {
+      setGeoStatus('locating', 'Locating');
+      getLocation(true);
+    }
+
+    function getLocation(forceRefresh) {
+      if (!navigator.geolocation) {
+        setGeoStatus('error', 'No GPS');
+        document.getElementById('lbl-lat').innerText = 'Not supported';
+        document.getElementById('lbl-lng').innerText = 'Not supported';
+        document.getElementById('lbl-geo-address').innerText = 'This browser does not support geolocation.';
+        return;
+      }
+
+      setGeoStatus('locating', 'Locating');
+      navigator.geolocation.getCurrentPosition(
+        (position) => applyPosition(position, forceRefresh ? 'Refreshed' : 'Fixed'),
+        (error) => {
+          console.warn('Geolocation error', error);
+          setGeoStatus('error', error.code === 1 ? 'Denied' : 'Unavailable');
+          document.getElementById('lbl-lat').innerText = currentLat.toFixed(5);
+          document.getElementById('lbl-lng').innerText = currentLng.toFixed(5);
+          document.getElementById('lbl-accuracy').innerText = 'Unavailable';
+          document.getElementById('lbl-geo-address').innerText =
+            error.code === 1
+              ? 'Location permission denied. Allow location access to mark attendance with GPS.'
+              : 'Could not read GPS. Showing last known / default location.';
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: forceRefresh ? 0 : 15000 }
+      );
+
+      if (geoWatchId === null) {
+        geoWatchId = navigator.geolocation.watchPosition(
+          (position) => applyPosition(position, 'Live'),
+          () => {},
+          { enableHighAccuracy: true, maximumAge: 5000 }
         );
-      } else {
-        document.getElementById('lbl-lat').innerText = currentLat.toFixed(5) + " (Not Supported)";
-        document.getElementById('lbl-lng').innerText = currentLng.toFixed(5) + " (Not Supported)";
       }
     }
 
