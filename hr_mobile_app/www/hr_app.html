@@ -975,6 +975,203 @@
       font-weight: 700;
       color: var(--gray-800);
     }
+
+    .user-avatar.has-photo {
+      background-size: cover;
+      background-position: center;
+      color: transparent;
+      text-indent: -9999px;
+      overflow: hidden;
+    }
+
+    .avatar-sm {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #A1EEC9 0%, #06B58B 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+      border: 2px solid #E6FBF3;
+    }
+
+    .avatar-sm.has-photo { color: transparent; text-indent: -9999px; }
+
+    .checkin-list {
+      max-height: 340px;
+      overflow-y: auto;
+    }
+
+    .checkin-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .checkin-row:last-child { border-bottom: none; }
+
+    .checkin-row-body { flex: 1; min-width: 0; }
+    .checkin-row-title { font-size: 13px; font-weight: 600; color: var(--gray-800); }
+    .checkin-row-meta { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+
+    .cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .cal-nav button {
+      border: 1px solid #A1EEC9;
+      background: #E6FBF3;
+      color: #0B313A;
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .cal-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      color: #0B313A;
+      font-size: 15px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+    }
+
+    .cal-dow {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-500);
+      padding: 4px 0;
+      text-transform: uppercase;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-700);
+      background: var(--gray-50);
+      border: 1px solid transparent;
+      position: relative;
+    }
+
+    .cal-day.empty { background: transparent; }
+    .cal-day.today { border-color: #06B58B; }
+    .cal-day.complete { background: #06B58B; color: #fff; }
+    .cal-day.in_only { background: #A1EEC9; color: #0B313A; }
+    .cal-day.out_only { background: #FEF3C7; color: #92400E; }
+    .cal-day .cal-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: currentColor; margin-top: 2px; opacity: 0.7;
+    }
+
+    .cal-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--gray-600);
+    }
+
+    .cal-legend span::before {
+      content: "";
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .cal-legend .lg-complete::before { background: #06B58B; }
+    .cal-legend .lg-in::before { background: #A1EEC9; }
+    .cal-legend .lg-none::before { background: #F3F4F6; border: 1px solid #E5E7EB; }
+
+    .record-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .record-stat {
+      background: #E6FBF3;
+      border: 1px solid #A1EEC9;
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .record-stat .v {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0B313A;
+    }
+
+    .record-stat .l {
+      font-size: 10px;
+      color: var(--gray-500);
+      margin-top: 2px;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .team-board-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .team-board-row:last-child { border-bottom: none; }
+    .team-board-meta { flex: 1; min-width: 0; }
+    .team-board-name { font-weight: 600; font-size: 13px; color: var(--gray-800); }
+    .team-board-sub { font-size: 11px; color: var(--gray-500); margin-top: 2px; }
+    .segmented {
+      display: flex;
+      background: var(--gray-100);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 12px;
+    }
+    .segmented button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-600);
+      cursor: pointer;
+    }
+    .segmented button.active {
+      background: #fff;
+      color: #0B313A;
+      box-shadow: var(--shadow-sm);
+    }
   </style>
 </head>
 <body>
@@ -1119,6 +1316,39 @@
             </button>
           </div>
 
+          <!-- My attendance records -->
+          <div class="card">
+            <div class="card-title">My Attendance Records</div>
+            <div class="record-stats">
+              <div class="record-stat"><div class="v" id="rec-present">0</div><div class="l">Present</div></div>
+              <div class="record-stat"><div class="v" id="rec-in">0</div><div class="l">IN Logs</div></div>
+              <div class="record-stat"><div class="v" id="rec-out">0</div><div class="l">OUT Logs</div></div>
+            </div>
+            <p style="font-size:12px;color:var(--gray-500);margin:0;">Tap a calendar day to see first IN / last OUT for that date.</p>
+          </div>
+
+          <!-- Monthly check-in calendar -->
+          <div class="card">
+            <div class="card-title">Monthly Check-in Calendar</div>
+            <div class="cal-nav">
+              <button type="button" onclick="shiftCalendar(-1)" aria-label="Previous month">‹</button>
+              <div class="cal-title" id="cal-month-label">—</div>
+              <button type="button" onclick="shiftCalendar(1)" aria-label="Next month">›</button>
+            </div>
+            <div class="cal-grid" id="cal-dow">
+              <div class="cal-dow">Sun</div><div class="cal-dow">Mon</div><div class="cal-dow">Tue</div>
+              <div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div>
+              <div class="cal-dow">Sat</div>
+            </div>
+            <div class="cal-grid" id="cal-days"></div>
+            <div class="cal-legend">
+              <span class="lg-complete">IN + OUT</span>
+              <span class="lg-in">IN only</span>
+              <span class="lg-none">No log</span>
+            </div>
+            <div id="cal-day-detail" style="margin-top:12px;font-size:12px;color:var(--gray-600);">Select a day for details.</div>
+          </div>
+
         </div>
       </section>
 
@@ -1171,7 +1401,7 @@
           <!-- Recent Logs -->
           <div class="card">
             <div class="card-title">Today's Checkins</div>
-            <div id="list-recent-checkins" style="max-height: 150px; overflow-y: auto;">
+            <div id="list-recent-checkins" class="checkin-list">
               <p style="color: var(--gray-500); font-size: 13px; text-align: center;">No logs submitted today yet.</p>
             </div>
           </div>
@@ -1243,6 +1473,22 @@
       <!-- SCREEN 6: MANAGER PORTAL -->
       <section class="screen" id="screen-manager">
         <div class="screen-content">
+
+          <div class="card">
+            <div class="card-title">Team Attendance Board</div>
+            <div class="segmented">
+              <button type="button" class="active" id="team-seg-today" onclick="loadTeamBoard('today')">Today</button>
+              <button type="button" id="team-seg-week" onclick="loadTeamBoard('week')">This Week</button>
+            </div>
+            <div class="record-stats">
+              <div class="record-stat"><div class="v" id="team-stat-in">0</div><div class="l">IN</div></div>
+              <div class="record-stat"><div class="v" id="team-stat-out">0</div><div class="l">OUT</div></div>
+              <div class="record-stat"><div class="v" id="team-stat-absent">0</div><div class="l">Absent</div></div>
+            </div>
+            <div id="team-attendance-board">
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center;">Loading team…</p>
+            </div>
+          </div>
           
           <!-- Team Live Checkin Map -->
           <div class="card">
@@ -1360,6 +1606,9 @@
     let mapMarker = null;
     let teamMap = null;
     let teamMarkers = [];
+    let calendarCursor = new Date();
+    let calendarData = null;
+    let teamBoardMode = 'today';
     
     // Cookie Helper
     function getCookie(name) {
@@ -1508,7 +1757,7 @@
       // Update Header Profile
       document.getElementById('header-user-name').innerText = data.employee.employee_name;
       document.getElementById('header-user-role').innerText = data.employee.designation || 'Employee';
-      document.getElementById('header-avatar-initials').innerText = data.employee.employee_name.charAt(0);
+      setAvatarEl(document.getElementById('header-avatar-initials'), data.employee.image, data.employee.employee_name);
       
       // Update Checkin Status badges
       updateCheckinStatus(data.last_checkin);
@@ -1535,9 +1784,11 @@
       await fetchLeaves();
       await fetchCheckins();
       await fetchSalarySlips();
+      await loadMonthlyCalendar();
       
       if (data.is_manager) {
         await fetchManagerWorkspace();
+        await loadTeamBoard('today');
       }
       
       // Reveal app frame
@@ -1770,9 +2021,31 @@
           updateCheckinStatus(res.checkin);
         }
         
-        // Update recent logs list
+        // Update recent logs list + calendar
         await fetchCheckins();
+        await loadMonthlyCalendar();
       }
+    }
+
+    function setAvatarEl(el, imageUrl, name) {
+      if (!el) return;
+      const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+      el.innerText = initial;
+      if (imageUrl) {
+        el.classList.add('has-photo');
+        el.style.backgroundImage = `url('${imageUrl}')`;
+      } else {
+        el.classList.remove('has-photo');
+        el.style.backgroundImage = '';
+      }
+    }
+
+    function avatarHtml(imageUrl, name, extraClass = 'avatar-sm') {
+      const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
+      if (imageUrl) {
+        return `<div class="${extraClass} has-photo" style="background-image:url('${imageUrl}')">${initial}</div>`;
+      }
+      return `<div class="${extraClass}">${initial}</div>`;
     }
 
     async function fetchCheckins() {
@@ -1780,50 +2053,139 @@
       if (!data) return;
       
       const listContainer = document.getElementById('list-recent-checkins');
-      if (data.length === 0) {
+      const todayStr = new Date().toDateString();
+      const todayLogs = data.filter(item => new Date(item.time).toDateString() === todayStr);
+      const empName = currentUser?.employee?.employee_name || 'Me';
+      const empImage = currentUser?.employee?.image || '';
+
+      if (todayLogs.length === 0) {
         listContainer.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No logs submitted today yet.</p>';
-        return;
+      } else {
+        let html = '';
+        todayLogs.forEach(item => {
+          const timeObj = new Date(item.time);
+          const timeStr = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const badgeClass = item.log_type === 'IN' ? 'badge-in' : 'badge-out';
+          const coordsStr = (item.latitude && item.longitude) ? `${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : 'No GPS';
+          html += `
+            <div class="checkin-row">
+              ${avatarHtml(empImage, empName)}
+              <div class="checkin-row-body">
+                <div class="checkin-row-title">${empName} · ${item.log_type} at ${timeStr}</div>
+                <div class="checkin-row-meta">GPS: ${coordsStr}${item.shift ? ' · ' + item.shift : ''}</div>
+              </div>
+              <span class="status-badge ${badgeClass}">${item.log_type}</span>
+            </div>
+          `;
+        });
+        listContainer.innerHTML = html;
       }
       
-      let html = '';
-      
-      // Calculate dashboard stats: count days checked in this month
-      let presentDaysCount = 0;
       let uniqueDates = new Set();
-      
-      data.forEach(item => {
-        const timeObj = new Date(item.time);
-        uniqueDates.add(timeObj.toDateString());
-        
-        const timeStr = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const dateStr = timeObj.toLocaleDateString();
-        const badgeClass = item.log_type === 'IN' ? 'badge-in' : 'badge-out';
-        const coordsStr = (item.latitude && item.longitude) ? `${item.latitude.toFixed(4)}, ${item.longitude.toFixed(4)}` : 'No GPS';
-        
+      data.forEach(item => uniqueDates.add(new Date(item.time).toDateString()));
+      const presentDaysCount = uniqueDates.size;
+      const totalWorkDaysInMonth = 22;
+      const attendancePct = Math.min(Math.round((presentDaysCount / totalWorkDaysInMonth) * 100), 100);
+      document.getElementById('stat-present-days').innerText = presentDaysCount;
+      document.getElementById('text-attendance-pct').innerText = `${attendancePct}%`;
+      document.getElementById('progress-attendance-ring').style.strokeDashoffset = 251.2 - (251.2 * attendancePct) / 100;
+    }
+
+    async function loadMonthlyCalendar() {
+      const y = calendarCursor.getFullYear();
+      const m = calendarCursor.getMonth() + 1;
+      const data = await callApi('hr_mobile_app.api.get_monthly_checkin_calendar', { year: y, month: m });
+      if (!data) return;
+      calendarData = data;
+      document.getElementById('cal-month-label').innerText = data.month_label || `${y}-${m}`;
+      document.getElementById('rec-present').innerText = data.summary?.present_days || 0;
+      document.getElementById('rec-in').innerText = data.summary?.in_logs || 0;
+      document.getElementById('rec-out').innerText = data.summary?.out_logs || 0;
+
+      const daysEl = document.getElementById('cal-days');
+      if (!daysEl) return;
+      const firstWeekday = (data.days && data.days.length) ? data.days[0].weekday : 0;
+      // API weekday: Mon=0 ... Sun=6 in Python; convert to Sun-start grid
+      const sunStartPad = (firstWeekday + 1) % 7;
+      let html = '';
+      for (let i = 0; i < sunStartPad; i++) html += `<div class="cal-day empty"></div>`;
+      (data.days || []).forEach(d => {
+        const cls = ['cal-day', d.status || 'none'];
+        if (d.is_today) cls.push('today');
+        html += `<button type="button" class="${cls.join(' ')}" onclick="showCalendarDay('${d.date}')"><span>${d.day}</span>${d.logs ? '<span class="cal-dot"></span>' : ''}</button>`;
+      });
+      daysEl.innerHTML = html;
+      document.getElementById('cal-day-detail').innerText = 'Select a day for details.';
+    }
+
+    function shiftCalendar(delta) {
+      calendarCursor.setMonth(calendarCursor.getMonth() + delta);
+      loadMonthlyCalendar();
+    }
+
+    function showCalendarDay(dateStr) {
+      if (!calendarData) return;
+      const d = (calendarData.days || []).find(x => x.date === dateStr);
+      const el = document.getElementById('cal-day-detail');
+      if (!d || d.status === 'none') {
+        el.innerText = `${dateStr}: No check-in recorded.`;
+        return;
+      }
+      const firstIn = d.first_in ? new Date(d.first_in).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+      const lastOut = d.last_out ? new Date(d.last_out).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+      el.innerHTML = `<strong>${dateStr}</strong> · ${d.logs} log(s)<br>First IN: ${firstIn} · Last OUT: ${lastOut}`;
+    }
+
+    async function loadTeamBoard(mode) {
+      teamBoardMode = mode || teamBoardMode || 'today';
+      const todayBtn = document.getElementById('team-seg-today');
+      const weekBtn = document.getElementById('team-seg-week');
+      if (todayBtn && weekBtn) {
+        todayBtn.classList.toggle('active', teamBoardMode === 'today');
+        weekBtn.classList.toggle('active', teamBoardMode === 'week');
+      }
+
+      const end = new Date();
+      const start = new Date();
+      if (teamBoardMode === 'week') start.setDate(end.getDate() - 6);
+      const from_date = start.toISOString().slice(0, 10);
+      const to_date = end.toISOString().slice(0, 10);
+
+      const board = await callApi('hr_mobile_app.api.get_team_attendance_board', { from_date, to_date });
+      const container = document.getElementById('team-attendance-board');
+      if (!container) return;
+      if (!board || board.length === 0) {
+        container.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No subordinates found.</p>';
+        document.getElementById('team-stat-in').innerText = '0';
+        document.getElementById('team-stat-out').innerText = '0';
+        document.getElementById('team-stat-absent').innerText = '0';
+        return;
+      }
+
+      let inC = 0, outC = 0, absC = 0;
+      let html = '';
+      board.forEach(s => {
+        if (s.status === 'IN') inC++;
+        else if (s.status === 'OUT') outC++;
+        else absC++;
+        const badgeClass = s.status === 'IN' ? 'badge-in' : (s.status === 'OUT' ? 'badge-out' : 'badge-pending');
+        const timeStr = s.last_time ? new Date(s.last_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'No log';
+        const gps = (s.latitude && s.longitude) ? `${Number(s.latitude).toFixed(3)}, ${Number(s.longitude).toFixed(3)}` : 'No GPS';
         html += `
-          <div class="leave-item">
-            <div class="leave-type-info">
-              <span class="leave-type-name">${item.log_type} Log - ${timeStr}</span>
-              <span class="leave-dates">${dateStr} | GPS: ${coordsStr}</span>
+          <div class="team-board-row">
+            ${avatarHtml(s.image, s.employee_name)}
+            <div class="team-board-meta">
+              <div class="team-board-name">${s.employee_name}</div>
+              <div class="team-board-sub">${s.designation || 'Staff'} · ${timeStr} · ${gps}</div>
             </div>
-            <span class="status-badge ${badgeClass}">${item.log_type}</span>
+            <span class="status-badge ${badgeClass}">${s.status}</span>
           </div>
         `;
       });
-      
-      listContainer.innerHTML = html;
-      
-      // Update attendance rate stats (mock monthly computation based on checkins)
-      presentDaysCount = uniqueDates.size;
-      const totalWorkDaysInMonth = 22; // Average business days in a month
-      const attendancePct = Math.min(Math.round((presentDaysCount / totalWorkDaysInMonth) * 100), 100);
-      
-      document.getElementById('stat-present-days').innerText = presentDaysCount;
-      document.getElementById('text-attendance-pct').innerText = `${attendancePct}%`;
-      
-      // Update progress ring offset
-      const strokeDashoffset = 251.2 - (251.2 * attendancePct) / 100;
-      document.getElementById('progress-attendance-ring').style.strokeDashoffset = strokeDashoffset;
+      container.innerHTML = html;
+      document.getElementById('team-stat-in').innerText = inC;
+      document.getElementById('team-stat-out').innerText = outC;
+      document.getElementById('team-stat-absent').innerText = absC;
     }
 
     // 3. LEAVE APPLICATIONS MODULE
@@ -2094,10 +2456,11 @@
         let teamHtml = '';
         currentUser.subordinates.forEach(s => {
           teamHtml += `
-            <div class="leave-item">
-              <div class="leave-type-info">
-                <span class="leave-type-name">${s.employee_name}</span>
-                <span class="leave-dates">${s.designation || 'Staff'} | ${s.department}</span>
+            <div class="checkin-row">
+              ${avatarHtml(s.image, s.employee_name)}
+              <div class="checkin-row-body">
+                <div class="checkin-row-title">${s.employee_name}</div>
+                <div class="checkin-row-meta">${s.designation || 'Staff'} | ${s.department || ''}</div>
               </div>
               <span class="status-badge badge-in">Active</span>
             </div>

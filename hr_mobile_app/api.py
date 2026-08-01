@@ -1,5 +1,36 @@
+
 import frappe
-from frappe.utils import cint, flt
+from frappe.utils import cint, flt, getdate, get_first_day, get_last_day, nowdate, get_url
+
+
+def _resolve_employee(user=None):
+	user = user or frappe.session.user
+	if user == "Guest":
+		return None
+	emp_name = frappe.db.get_value("Employee", {"user_id": user, "status": "Active"}, "name")
+	if not emp_name:
+		emp_name = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not emp_name and user == "Administrator":
+		emp_name = "HR-EMP-00001"
+	return emp_name
+
+
+def _employee_image_url(image):
+	if not image:
+		return ""
+	if str(image).startswith(("http://", "https://", "/")):
+		return str(image)
+	return f"/files/{image.lstrip('/')}"
+
+
+def _file_url(path):
+	if not path:
+		return ""
+	# Prefer absolute URL for mobile webview reliability
+	try:
+		return get_url(path if str(path).startswith("/") else f"/{path}")
+	except Exception:
+		return path if str(path).startswith("/") else f"/{path}"
 
 
 @frappe.whitelist()
@@ -27,10 +58,12 @@ def get_hr_app_user_info():
 	emp_doc = frappe.get_doc("Employee", emp_name)
 
 	# Check if this employee is a manager (has subordinates reporting to them)
-	subordinates = frappe.get_all("Employee", 
-		filters={"reports_to": emp_name, "status": "Active"}, 
-		fields=["name", "employee_name", "designation", "department", "user_id"]
+	subordinates = frappe.get_all("Employee",
+		filters={"reports_to": emp_name, "status": "Active"},
+		fields=["name", "employee_name", "designation", "department", "user_id", "image", "cell_number", "company_email"]
 	)
+	for s in subordinates:
+		s["image"] = _file_url(_employee_image_url(s.get("image")))
 	is_manager = len(subordinates) > 0
 
 	# Leave balance summary
@@ -109,6 +142,7 @@ def get_hr_app_user_info():
 			"branch": emp_doc.branch,
 			"user_id": emp_doc.user_id,
 			"gender": emp_doc.gender,
+			"image": _file_url(_employee_image_url(emp_doc.image)),
 			"date_of_joining": str(emp_doc.date_of_joining) if emp_doc.date_of_joining else ""
 		},
 		"is_manager": is_manager,
@@ -214,6 +248,12 @@ def get_team_checkins(from_date=None, to_date=None):
 		order_by="time desc",
 		limit=200
 	)
+	images = {
+		r.name: _file_url(_employee_image_url(r.image))
+		for r in frappe.get_all("Employee", filters={"name": ["in", sub_names]}, fields=["name", "image"])
+	}
+	for c in checkins:
+		c["image"] = images.get(c.employee, "")
 	return checkins
 
 
@@ -378,3 +418,154 @@ def get_salary_slip_details(name):
 		"payment_days": slip.payment_days,
 		"leave_without_pay": slip.leave_without_pay
 	}
+
+
+@frappe.whitelist()
+def get_monthly_checkin_calendar(year=None, month=None):
+	"""Return monthly day status for the logged-in employee check-ins."""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+
+	emp_name = _resolve_employee(user)
+	if not emp_name:
+		return {"year": None, "month": None, "days": [], "summary": {}}
+
+	today = getdate(nowdate())
+	year = cint(year) or today.year
+	month = cint(month) or today.month
+	first = get_first_day(f"{year}-{month:02d}-01")
+	last = get_last_day(first)
+
+	rows = frappe.get_all(
+		"Employee Checkin",
+		filters={
+			"employee": emp_name,
+			"time": ["between", [str(first) + " 00:00:00", str(last) + " 23:59:59"]],
+		},
+		fields=["time", "log_type", "latitude", "longitude"],
+		order_by="time asc",
+		limit=1000,
+	)
+
+	by_day = {}
+	for r in rows:
+		day = str(getdate(r.time))
+		bucket = by_day.setdefault(day, {"in_count": 0, "out_count": 0, "first_in": None, "last_out": None, "logs": 0})
+		bucket["logs"] += 1
+		if r.log_type == "IN":
+			bucket["in_count"] += 1
+			if not bucket["first_in"]:
+				bucket["first_in"] = str(r.time)
+		elif r.log_type == "OUT":
+			bucket["out_count"] += 1
+			bucket["last_out"] = str(r.time)
+
+	days = []
+	present = 0
+	from datetime import timedelta
+
+	cur = first
+	while cur <= last:
+		key = str(cur)
+		info = by_day.get(key)
+		status = "none"
+		if info:
+			if info["in_count"] and info["out_count"]:
+				status = "complete"
+				present += 1
+			elif info["in_count"]:
+				status = "in_only"
+				present += 1
+			else:
+				status = "out_only"
+		days.append({
+			"date": key,
+			"day": cur.day,
+			"weekday": cur.weekday(),
+			"status": status,
+			"in_count": info["in_count"] if info else 0,
+			"out_count": info["out_count"] if info else 0,
+			"first_in": info["first_in"] if info else None,
+			"last_out": info["last_out"] if info else None,
+			"logs": info["logs"] if info else 0,
+			"is_today": key == str(today),
+		})
+		cur = cur + timedelta(days=1)
+
+	return {
+		"year": year,
+		"month": month,
+		"month_label": first.strftime("%B %Y"),
+		"days": days,
+		"summary": {
+			"present_days": present,
+			"total_logs": len(rows),
+			"in_logs": sum(1 for r in rows if r.log_type == "IN"),
+			"out_logs": sum(1 for r in rows if r.log_type == "OUT"),
+		},
+	}
+
+
+@frappe.whitelist()
+def get_team_attendance_board(from_date=None, to_date=None):
+	"""Today/range status board for subordinates with photos and last check-in."""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+
+	emp_name = _resolve_employee(user)
+	if not emp_name:
+		return []
+
+	subs = frappe.get_all(
+		"Employee",
+		filters={"reports_to": emp_name, "status": "Active"},
+		fields=["name", "employee_name", "designation", "department", "image"],
+		order_by="employee_name asc",
+	)
+	if not subs:
+		return []
+
+	from_date = from_date or nowdate()
+	to_date = to_date or from_date
+	sub_names = [s.name for s in subs]
+	checkins = frappe.get_all(
+		"Employee Checkin",
+		filters={
+			"employee": ["in", sub_names],
+			"time": ["between", [str(from_date) + " 00:00:00", str(to_date) + " 23:59:59"]],
+		},
+		fields=["employee", "employee_name", "time", "log_type", "latitude", "longitude"],
+		order_by="time desc",
+		limit=500,
+	)
+
+	latest = {}
+	counts = {}
+	for c in checkins:
+		counts[c.employee] = counts.get(c.employee, 0) + 1
+		if c.employee not in latest:
+			latest[c.employee] = c
+
+	board = []
+	for s in subs:
+		last = latest.get(s.name)
+		status = "Absent"
+		if last:
+			status = "IN" if last.log_type == "IN" else "OUT"
+		board.append({
+			"employee": s.name,
+			"employee_name": s.employee_name,
+			"designation": s.designation,
+			"department": s.department,
+			"image": _file_url(_employee_image_url(s.image)),
+			"status": status,
+			"last_log_type": last.log_type if last else None,
+			"last_time": str(last.time) if last else None,
+			"latitude": last.latitude if last else None,
+			"longitude": last.longitude if last else None,
+			"logs_today": counts.get(s.name, 0),
+		})
+	return board
+
