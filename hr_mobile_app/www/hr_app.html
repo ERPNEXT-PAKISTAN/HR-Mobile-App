@@ -1172,6 +1172,70 @@
       color: #0B313A;
       box-shadow: var(--shadow-sm);
     }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 12px;
+    }
+    .chip {
+      border: 1px solid #A1EEC9;
+      background: #fff;
+      color: #0B313A;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .chip.active {
+      background: #06B58B;
+      border-color: #06B58B;
+      color: #fff;
+    }
+    .chip img, .chip .chip-av {
+      width: 18px; height: 18px; border-radius: 50%;
+      object-fit: cover; background: #E6FBF3;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+    }
+    .filter-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .filter-grid .full { grid-column: 1 / -1; }
+    .report-emp-card {
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+    .report-Emp-card:last-child { margin-bottom: 0; }
+    .mini-day-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 8px;
+    }
+    .mini-day {
+      width: 22px; height: 22px;
+      border-radius: 6px;
+      font-size: 9px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      background: #F3F4F6; color: #6B7280;
+    }
+    .mini-day.is-complete { background: #06B58B; color: #fff; }
+    .mini-day.is-in { background: #A1EEC9; color: #0B313A; }
+    .mini-day.is-absent { background: #FEE2E2; color: #991B1B; }
+    .mini-day.is-off { background: #F9FAFB; color: #D1D5DB; }
   </style>
 </head>
 <body>
@@ -1475,18 +1539,59 @@
         <div class="screen-content">
 
           <div class="card">
-            <div class="card-title">Team Attendance Board</div>
+            <div class="card-title">Team Attendance Report</div>
             <div class="segmented">
-              <button type="button" class="active" id="team-seg-today" onclick="loadTeamBoard('today')">Today</button>
-              <button type="button" id="team-seg-week" onclick="loadTeamBoard('week')">This Week</button>
+              <button type="button" class="active" id="team-mode-day" onclick="setTeamReportMode('day')">Selected Date</button>
+              <button type="button" id="team-mode-month" onclick="setTeamReportMode('month')">Month</button>
             </div>
-            <div class="record-stats">
-              <div class="record-stat"><div class="v" id="team-stat-in">0</div><div class="l">IN</div></div>
-              <div class="record-stat"><div class="v" id="team-stat-out">0</div><div class="l">OUT</div></div>
+
+            <div class="filter-grid">
+              <div class="full" id="team-day-filters">
+                <label class="form-label">Date</label>
+                <input type="date" id="team-report-date" class="form-control" onchange="runTeamReport()">
+              </div>
+              <div class="full" id="team-month-filters" style="display:none;">
+                <div class="cal-nav" style="margin-bottom:0;">
+                  <button type="button" onclick="shiftTeamReportMonth(-1)">‹</button>
+                  <div class="cal-title" id="team-report-month-label">—</div>
+                  <button type="button" onclick="shiftTeamReportMonth(1)">›</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+              <div class="form-label" style="margin:0;">Team members</div>
+              <div style="display:flex;gap:8px;">
+                <button type="button" class="btn-geo-refresh" onclick="selectAllTeamMembers(true)">All</button>
+                <button type="button" class="btn-geo-refresh" style="background:#64748b;" onclick="selectAllTeamMembers(false)">Clear</button>
+              </div>
+            </div>
+            <div class="chip-row" id="team-member-chips"></div>
+
+            <button type="button" class="btn btn-primary" onclick="runTeamReport()">
+              View Report
+            </button>
+
+            <div class="record-stats" style="margin-top:14px;">
+              <div class="record-stat"><div class="v" id="team-stat-present">0</div><div class="l">Present</div></div>
               <div class="record-stat"><div class="v" id="team-stat-absent">0</div><div class="l">Absent</div></div>
+              <div class="record-stat"><div class="v" id="team-stat-logs">0</div><div class="l">Logs</div></div>
             </div>
+            <div id="team-report-period" style="font-size:12px;color:var(--gray-500);margin-bottom:8px;"></div>
             <div id="team-attendance-board">
-              <p style="color: var(--gray-500); font-size: 13px; text-align: center;">Loading team…</p>
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center;">Select members and view report.</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Live Status (Today)</div>
+            <div class="record-stats">
+              <div class="record-stat"><div class="v" id="team-live-in">0</div><div class="l">IN</div></div>
+              <div class="record-stat"><div class="v" id="team-live-out">0</div><div class="l">OUT</div></div>
+              <div class="record-stat"><div class="v" id="team-live-absent">0</div><div class="l">Absent</div></div>
+            </div>
+            <div id="team-live-board">
+              <p style="color: var(--gray-500); font-size: 13px; text-align: center;">Loading…</p>
             </div>
           </div>
           
@@ -2170,32 +2275,165 @@
       el.innerHTML = `<strong>${dateStr}</strong> · ${d.logs} log(s)<br>First IN: ${firstIn} · Last OUT: ${lastOut}`;
     }
 
-    async function loadTeamBoard(mode) {
-      teamBoardMode = mode || teamBoardMode || 'today';
-      const todayBtn = document.getElementById('team-seg-today');
-      const weekBtn = document.getElementById('team-seg-week');
-      if (todayBtn && weekBtn) {
-        todayBtn.classList.toggle('active', teamBoardMode === 'today');
-        weekBtn.classList.toggle('active', teamBoardMode === 'week');
+    let teamReportMode = 'day';
+    let teamReportMonth = new Date();
+    let selectedTeamMembers = new Set();
+
+    function setTeamReportMode(mode) {
+      teamReportMode = mode;
+      document.getElementById('team-mode-day').classList.toggle('active', mode === 'day');
+      document.getElementById('team-mode-month').classList.toggle('active', mode === 'month');
+      document.getElementById('team-day-filters').style.display = mode === 'day' ? 'block' : 'none';
+      document.getElementById('team-month-filters').style.display = mode === 'month' ? 'block' : 'none';
+      if (mode === 'month') {
+        document.getElementById('team-report-month-label').innerText =
+          teamReportMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      }
+    }
+
+    function shiftTeamReportMonth(delta) {
+      teamReportMonth.setMonth(teamReportMonth.getMonth() + delta);
+      document.getElementById('team-report-month-label').innerText =
+        teamReportMonth.toLocaleString(undefined, { month: 'long', year: 'numeric' });
+      runTeamReport();
+    }
+
+    function renderTeamMemberChips() {
+      const wrap = document.getElementById('team-member-chips');
+      if (!wrap || !currentUser) return;
+      const subs = currentUser.subordinates || [];
+      if (!subs.length) {
+        wrap.innerHTML = '<span style="font-size:12px;color:var(--gray-500);">No subordinates.</span>';
+        return;
+      }
+      if (selectedTeamMembers.size === 0) {
+        subs.forEach(s => selectedTeamMembers.add(s.name));
+      }
+      wrap.innerHTML = subs.map(s => {
+        const active = selectedTeamMembers.has(s.name) ? 'active' : '';
+        const av = s.image
+          ? `<img src="${s.image}" alt="">`
+          : `<span class="chip-av">${(s.employee_name||'?').charAt(0)}</span>`;
+        return `<button type="button" class="chip ${active}" onclick="toggleTeamMember('${s.name}')">${av}${s.employee_name}</button>`;
+      }).join('');
+    }
+
+    function toggleTeamMember(empId) {
+      if (selectedTeamMembers.has(empId)) selectedTeamMembers.delete(empId);
+      else selectedTeamMembers.add(empId);
+      renderTeamMemberChips();
+    }
+
+    function selectAllTeamMembers(all) {
+      selectedTeamMembers.clear();
+      if (all && currentUser) {
+        (currentUser.subordinates || []).forEach(s => selectedTeamMembers.add(s.name));
+      }
+      renderTeamMemberChips();
+    }
+
+    async function runTeamReport() {
+      const board = document.getElementById('team-attendance-board');
+      if (!board) return;
+      if (!selectedTeamMembers.size) {
+        board.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">Select at least one team member.</p>';
+        return;
+      }
+      board.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">Loading report…</p>';
+
+      const payload = {
+        mode: teamReportMode,
+        employees: JSON.stringify(Array.from(selectedTeamMembers)),
+      };
+      if (teamReportMode === 'month') {
+        payload.year = teamReportMonth.getFullYear();
+        payload.month = teamReportMonth.getMonth() + 1;
+      } else {
+        const dateEl = document.getElementById('team-report-date');
+        payload.report_date = dateEl && dateEl.value ? dateEl.value : new Date().toISOString().slice(0, 10);
       }
 
-      const end = new Date();
-      const start = new Date();
-      if (teamBoardMode === 'week') start.setDate(end.getDate() - 6);
-      const from_date = start.toISOString().slice(0, 10);
-      const to_date = end.toISOString().slice(0, 10);
-
-      const board = await callApi('hr_mobile_app.api.get_team_attendance_board', { from_date, to_date });
-      const container = document.getElementById('team-attendance-board');
-      if (!container) return;
-      if (!board || board.length === 0) {
-        container.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No subordinates found.</p>';
-        document.getElementById('team-stat-in').innerText = '0';
-        document.getElementById('team-stat-out').innerText = '0';
-        document.getElementById('team-stat-absent').innerText = '0';
+      const data = await callApi('hr_mobile_app.api.get_team_attendance_report', payload);
+      if (!data) {
+        board.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">Could not load report.</p>';
         return;
       }
 
+      document.getElementById('team-report-period').innerText = `Period: ${data.period_label || ''} · ${data.summary?.team_size || 0} member(s)`;
+      document.getElementById('team-stat-present').innerText = data.summary?.present_days || 0;
+      document.getElementById('team-stat-absent').innerText = data.summary?.absent_days || 0;
+      document.getElementById('team-stat-logs').innerText = (data.summary?.in_logs || 0) + (data.summary?.out_logs || 0);
+
+      if (!data.employees || !data.employees.length) {
+        board.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No data for selection.</p>';
+        return;
+      }
+
+      let html = '';
+      data.employees.forEach(emp => {
+        if (data.mode === 'day') {
+          const d = (emp.daily && emp.daily[0]) || {};
+          const firstIn = d.first_in ? new Date(d.first_in).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+          const lastOut = d.last_out ? new Date(d.last_out).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
+          const gps = (d.latitude && d.longitude) ? `${Number(d.latitude).toFixed(4)}, ${Number(d.longitude).toFixed(4)}` : 'No GPS';
+          const badgeClass = emp.day_status === 'IN' ? 'badge-in' : (emp.day_status === 'OUT' || emp.day_status === 'Complete' ? 'badge-out' : 'badge-pending');
+          html += `
+            <div class="report-emp-card">
+              <div class="team-board-row" style="border:none;padding:0;">
+                ${avatarHtml(emp.image, emp.employee_name)}
+                <div class="team-board-meta">
+                  <div class="team-board-name">${emp.employee_name}</div>
+                  <div class="team-board-sub">${emp.designation || 'Staff'} · ${emp.department || ''}</div>
+                </div>
+                <span class="status-badge ${badgeClass}">${emp.day_status || d.status || 'Absent'}</span>
+              </div>
+              <div style="margin-top:8px;font-size:12px;color:var(--gray-600);">
+                First IN: <strong>${firstIn}</strong> · Last OUT: <strong>${lastOut}</strong><br>
+                Logs: ${d.logs || 0} · GPS: ${gps}
+              </div>
+            </div>`;
+        } else {
+          const strip = (emp.daily || []).map(d => {
+            let cls = 'mini-day';
+            if (d.status === 'Complete') cls += ' is-complete';
+            else if (d.status === 'IN only') cls += ' is-in';
+            else if (d.status === 'Absent') cls += ' is-absent';
+            else if (d.status === 'Off') cls += ' is-off';
+            return `<div class="${cls}" title="${d.date}: ${d.status}">${d.day}</div>`;
+          }).join('');
+          html += `
+            <div class="report-emp-card">
+              <div class="team-board-row" style="border:none;padding:0;">
+                ${avatarHtml(emp.image, emp.employee_name)}
+                <div class="team-board-meta">
+                  <div class="team-board-name">${emp.employee_name}</div>
+                  <div class="team-board-sub">Present ${emp.present_days} · Absent ${emp.absent_days} · IN ${emp.in_logs} / OUT ${emp.out_logs}</div>
+                </div>
+              </div>
+              <div class="mini-day-strip">${strip}</div>
+            </div>`;
+        }
+      });
+      board.innerHTML = html;
+    }
+
+    async function loadTeamBoard(mode) {
+      // Keep live today board + initialize report filters.
+      renderTeamMemberChips();
+      const dateEl = document.getElementById('team-report-date');
+      if (dateEl && !dateEl.value) dateEl.value = new Date().toISOString().slice(0, 10);
+      setTeamReportMode(teamReportMode || 'day');
+      await runTeamReport();
+
+      const today = new Date().toISOString().slice(0, 10);
+      const board = await callApi('hr_mobile_app.api.get_team_attendance_board', { from_date: today, to_date: today });
+      const live = document.getElementById('team-live-board');
+      if (!live) return;
+      if (!board || board.length === 0) {
+        live.innerHTML = '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No subordinates found.</p>';
+        ['team-live-in','team-live-out','team-live-absent'].forEach(id => document.getElementById(id).innerText = '0');
+        return;
+      }
       let inC = 0, outC = 0, absC = 0;
       let html = '';
       board.forEach(s => {
@@ -2203,23 +2441,21 @@
         else if (s.status === 'OUT') outC++;
         else absC++;
         const badgeClass = s.status === 'IN' ? 'badge-in' : (s.status === 'OUT' ? 'badge-out' : 'badge-pending');
-        const timeStr = s.last_time ? new Date(s.last_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'No log';
-        const gps = (s.latitude && s.longitude) ? `${Number(s.latitude).toFixed(3)}, ${Number(s.longitude).toFixed(3)}` : 'No GPS';
+        const timeStr = s.last_time ? new Date(s.last_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'No log';
         html += `
           <div class="team-board-row">
             ${avatarHtml(s.image, s.employee_name)}
             <div class="team-board-meta">
               <div class="team-board-name">${s.employee_name}</div>
-              <div class="team-board-sub">${s.designation || 'Staff'} · ${timeStr} · ${gps}</div>
+              <div class="team-board-sub">${s.designation || 'Staff'} · ${timeStr}</div>
             </div>
             <span class="status-badge ${badgeClass}">${s.status}</span>
-          </div>
-        `;
+          </div>`;
       });
-      container.innerHTML = html;
-      document.getElementById('team-stat-in').innerText = inC;
-      document.getElementById('team-stat-out').innerText = outC;
-      document.getElementById('team-stat-absent').innerText = absC;
+      live.innerHTML = html;
+      document.getElementById('team-live-in').innerText = inC;
+      document.getElementById('team-live-out').innerText = outC;
+      document.getElementById('team-live-absent').innerText = absC;
     }
 
     // 3. LEAVE APPLICATIONS MODULE

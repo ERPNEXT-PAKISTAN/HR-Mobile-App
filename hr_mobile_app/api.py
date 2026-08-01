@@ -629,3 +629,206 @@ def get_team_attendance_board(from_date=None, to_date=None):
 		})
 	return board
 
+
+@frappe.whitelist()
+def get_team_attendance_report(mode="day", report_date=None, year=None, month=None, employees=None):
+	"""Team attendance report for selected date or month, for all or selected subordinates."""
+	from datetime import timedelta
+	import json
+
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+
+	manager = _resolve_employee(user)
+	if not manager:
+		return {"employees": [], "summary": {}, "mode": mode}
+
+	subs = frappe.get_all(
+		"Employee",
+		filters={"reports_to": manager, "status": "Active"},
+		fields=["name", "employee_name", "designation", "department", "image"],
+		order_by="employee_name asc",
+	)
+	if not subs:
+		return {"employees": [], "summary": {}, "mode": mode, "from_date": None, "to_date": None}
+
+	allowed = {s.name: s for s in subs}
+
+	# Parse selected employees (JSON list / comma string / single)
+	selected = []
+	if employees:
+		if isinstance(employees, str):
+			try:
+				parsed = json.loads(employees)
+				selected = parsed if isinstance(parsed, list) else [str(parsed)]
+			except Exception:
+				selected = [x.strip() for x in employees.split(",") if x.strip()]
+		elif isinstance(employees, (list, tuple)):
+			selected = list(employees)
+
+	if selected:
+		selected = [e for e in selected if e in allowed]
+	else:
+		selected = list(allowed.keys())
+
+	today = getdate(nowdate())
+	mode = (mode or "day").lower()
+	if mode == "month":
+		year = cint(year) or today.year
+		month = cint(month) or today.month
+		from_date = get_first_day(f"{year}-{month:02d}-01")
+		to_date = get_last_day(from_date)
+		period_label = from_date.strftime("%B %Y")
+	else:
+		from_date = getdate(report_date or today)
+		to_date = from_date
+		period_label = str(from_date)
+		year = from_date.year
+		month = from_date.month
+
+	rows = frappe.get_all(
+		"Employee Checkin",
+		filters={
+			"employee": ["in", selected],
+			"time": ["between", [str(from_date) + " 00:00:00", str(to_date) + " 23:59:59"]],
+		},
+		fields=["employee", "employee_name", "time", "log_type", "latitude", "longitude", "shift"],
+		order_by="time asc",
+		limit=5000,
+	)
+
+	by_emp_day = {}
+	for r in rows:
+		day = str(getdate(r.time))
+		key = (r.employee, day)
+		bucket = by_emp_day.setdefault(
+			key,
+			{"in_count": 0, "out_count": 0, "first_in": None, "last_out": None, "logs": 0, "lat": None, "lng": None},
+		)
+		bucket["logs"] += 1
+		if r.log_type == "IN":
+			bucket["in_count"] += 1
+			if not bucket["first_in"]:
+				bucket["first_in"] = str(r.time)
+				bucket["lat"] = r.latitude
+				bucket["lng"] = r.longitude
+		elif r.log_type == "OUT":
+			bucket["out_count"] += 1
+			bucket["last_out"] = str(r.time)
+
+	# working days in range (Mon-Fri) for absent calc
+	workdays = []
+	cur = from_date
+	while cur <= to_date:
+		if cur.weekday() < 5:
+			workdays.append(str(cur))
+		cur = cur + timedelta(days=1)
+
+	employee_reports = []
+	total_present = 0
+	total_absent = 0
+	total_in = 0
+	total_out = 0
+
+	for emp_id in selected:
+		s = allowed[emp_id]
+		present_days = 0
+		in_logs = 0
+		out_logs = 0
+		daily = []
+		cur = from_date
+		while cur <= to_date:
+			key = str(cur)
+			info = by_emp_day.get((emp_id, key))
+			status = "Absent"
+			if info:
+				in_logs += info["in_count"]
+				out_logs += info["out_count"]
+				if info["in_count"] and info["out_count"]:
+					status = "Complete"
+					present_days += 1
+				elif info["in_count"]:
+					status = "IN only"
+					present_days += 1
+				else:
+					status = "OUT only"
+			elif cur.weekday() >= 5:
+				status = "Off"
+			daily.append({
+				"date": key,
+				"day": cur.day,
+				"weekday": cur.weekday(),
+				"status": status,
+				"first_in": info["first_in"] if info else None,
+				"last_out": info["last_out"] if info else None,
+				"logs": info["logs"] if info else 0,
+				"latitude": info["lat"] if info else None,
+				"longitude": info["lng"] if info else None,
+			})
+			cur = cur + timedelta(days=1)
+
+		absent_days = 0
+		for wd in workdays:
+			info = by_emp_day.get((emp_id, wd))
+			if not info or not info["in_count"]:
+				absent_days += 1
+
+		# Day-mode status from last activity that day
+		day_status = "Absent"
+		if mode != "month":
+			info = by_emp_day.get((emp_id, str(from_date)))
+			if info:
+				if info["last_out"] and (not info["first_in"] or str(info["last_out"]) >= str(info["first_in"])):
+					day_status = "OUT"
+				elif info["in_count"]:
+					day_status = "IN"
+				else:
+					day_status = "OUT"
+
+		total_present += present_days
+		total_absent += absent_days
+		total_in += in_logs
+		total_out += out_logs
+
+		employee_reports.append({
+			"employee": emp_id,
+			"employee_name": s.employee_name,
+			"designation": s.designation,
+			"department": s.department,
+			"image": _file_url(_employee_image_url(s.image)),
+			"present_days": present_days,
+			"absent_days": absent_days,
+			"in_logs": in_logs,
+			"out_logs": out_logs,
+			"day_status": day_status,
+			"daily": daily if mode == "month" else [d for d in daily if d["date"] == str(from_date)],
+		})
+
+	return {
+		"mode": mode,
+		"period_label": period_label,
+		"from_date": str(from_date),
+		"to_date": str(to_date),
+		"year": year,
+		"month": month,
+		"selected_employees": selected,
+		"available_employees": [
+			{
+				"employee": s.name,
+				"employee_name": s.employee_name,
+				"image": _file_url(_employee_image_url(s.image)),
+				"designation": s.designation,
+			}
+			for s in subs
+		],
+		"employees": employee_reports,
+		"summary": {
+			"team_size": len(selected),
+			"present_days": total_present,
+			"absent_days": total_absent,
+			"in_logs": total_in,
+			"out_logs": total_out,
+		},
+	}
+
