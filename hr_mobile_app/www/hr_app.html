@@ -2433,7 +2433,10 @@
           approvalsHtml += `
             <div class="approval-card" id="leave-card-${item.name}">
               <div class="approval-header">
-                <span class="approval-emp-name">${item.employee_name} (${item.employee})</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  ${avatarHtml((currentUser.subordinates||[]).find(s=>s.name===item.employee)?.image, item.employee_name)}
+                  <span class="approval-emp-name">${item.employee_name}</span>
+                </div>
                 <span class="status-badge badge-pending">Pending</span>
               </div>
               <div class="approval-details">
