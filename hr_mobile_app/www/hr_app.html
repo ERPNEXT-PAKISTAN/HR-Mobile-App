@@ -532,6 +532,19 @@
       background-color: var(--danger-light);
     }
 
+    .visit-details-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      margin: 4px 0 14px; padding: 12px 14px; border: 1px solid var(--gray-200);
+      border-radius: var(--radius-md); background: var(--gray-50); color: var(--gray-700);
+      font-weight: 600; cursor: pointer;
+    }
+    .visit-details-toggle .toggle-icon { transition: transform .2s ease; }
+    .visit-details-toggle.open .toggle-icon { transform: rotate(180deg); }
+    .visit-details-panel { display: none; margin-bottom: 16px; }
+    .visit-details-panel.open { display: block; }
+    .visit-details-panel .form-group { margin-bottom: 12px; }
+    .visit-details-panel textarea { resize: vertical; min-height: 74px; }
+
     .coordinates-panel {
       font-size: 12px;
       color: var(--gray-700);
@@ -1411,6 +1424,8 @@
               <span class="lg-none">No log</span>
             </div>
             <div id="cal-day-detail" style="margin-top:12px;font-size:12px;color:var(--gray-600);">Select a day for details.</div>
+            <button type="button" class="btn btn-secondary" style="margin-top:12px;" onclick="showMonthlyVisitReport()">Show Full Month Report</button>
+            <div id="monthly-visit-report" style="margin-top:12px;"></div>
           </div>
 
         </div>
@@ -1425,6 +1440,32 @@
             <div class="checkin-selector">
               <button id="btn-checkin-in" class="btn-toggle-log active-in" onclick="selectCheckinType('IN')">IN</button>
               <button id="btn-checkin-out" class="btn-toggle-log" onclick="selectCheckinType('OUT')">OUT</button>
+            </div>
+
+            <button type="button" class="visit-details-toggle" id="visit-details-toggle" onclick="toggleVisitDetails()" aria-expanded="false">
+              <span>＋ Add Call / Visit details <small style="font-weight:400;color:var(--gray-500);">(optional)</small></span>
+              <span class="toggle-icon">⌄</span>
+            </button>
+            <div class="visit-details-panel" id="visit-details-panel">
+              <div class="form-group">
+                <label for="checkin-doctor" class="form-label">Doctor</label>
+                <input id="checkin-doctor" name="custom_doctor" class="form-control" list="checkin-doctor-options" placeholder="Search and select doctor" oninput="setDoctorHospital()">
+                <datalist id="checkin-doctor-options"></datalist>
+              </div>
+              <div class="form-group">
+                <label for="checkin-hospital" class="form-label">Hospital</label>
+                <input id="checkin-hospital" name="custom_hospital_name" class="form-control" placeholder="Loaded from selected doctor" disabled aria-readonly="true">
+              </div>
+              <div class="form-group">
+                <label for="checkin-market-shift" class="form-label">Shift</label>
+                <select id="checkin-market-shift" class="form-control">
+                  <option value="Morning" selected>Morning</option><option value="Evening">Evening</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="checkin-remarks" class="form-label">Remarks</label>
+                <textarea id="checkin-remarks" class="form-control" maxlength="140" placeholder="Add a short note"></textarea>
+              </div>
             </div>
 
             <!-- Geolocation display -->
@@ -1714,6 +1755,8 @@
     let calendarCursor = new Date();
     let calendarData = null;
     let teamBoardMode = 'today';
+    let visitOptionsLoaded = false;
+    let doctorHospitals = new Map();
     
     // Cookie Helper
     function getCookie(name) {
@@ -2001,6 +2044,46 @@
       }
     }
 
+    async function toggleVisitDetails() {
+      const panel = document.getElementById('visit-details-panel');
+      const toggle = document.getElementById('visit-details-toggle');
+      const isOpen = panel.classList.toggle('open');
+      toggle.classList.toggle('open', isOpen);
+      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (isOpen && !visitOptionsLoaded) await loadVisitOptions();
+    }
+
+    async function loadVisitOptions() {
+      const data = await callApi('hr_mobile_app.api.get_checkin_visit_options', {}, { silent: true });
+      if (!data) return;
+      if (data.enabled === false) {
+        document.getElementById('visit-details-toggle').style.display = 'none';
+        document.getElementById('visit-details-panel').classList.remove('open');
+        visitOptionsLoaded = true;
+        return;
+      }
+      const doctorList = document.getElementById('checkin-doctor-options');
+      doctorHospitals = new Map((data.doctors || []).map(item => [item.name, item.hospital_name || '']));
+      doctorList.replaceChildren(...(data.doctors || []).map(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        return option;
+      }));
+      visitOptionsLoaded = true;
+    }
+
+    function setDoctorHospital() {
+      const doctor = document.getElementById('checkin-doctor').value.trim();
+      document.getElementById('checkin-hospital').value = doctorHospitals.get(doctor) || '';
+    }
+
+    function clearVisitDetails() {
+      ['checkin-hospital', 'checkin-doctor', 'checkin-remarks'].forEach(id => {
+        document.getElementById(id).value = '';
+      });
+      document.getElementById('checkin-market-shift').value = 'Morning';
+    }
+
     // Geolocation retrieval + live accuracy display
     let geoWatchId = null;
     let currentAccuracy = null;
@@ -2144,7 +2227,11 @@
       const payload = {
         log_type: selectedCheckinType,
         latitude: currentLat,
-        longitude: currentLng
+        longitude: currentLng,
+        custom_hospital_name: document.getElementById('checkin-hospital').value.trim(),
+        custom_doctor: document.getElementById('checkin-doctor').value.trim(),
+        custom_market_shift: document.getElementById('checkin-market-shift').value,
+        custom_remarks: document.getElementById('checkin-remarks').value.trim()
       };
       
       try {
@@ -2157,6 +2244,7 @@
           }
           await fetchCheckins();
           await loadMonthlyCalendar();
+          clearVisitDetails();
         } else if (res && res.status === 'error') {
           showToast(res.message || 'Could not save check-in.', true);
         }
@@ -2208,13 +2296,14 @@
           const timeObj = new Date(item.time);
           const timeStr = timeObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const badgeClass = item.log_type === 'IN' ? 'badge-in' : 'badge-out';
-          const coordsStr = (item.latitude && item.longitude) ? `${Number(item.latitude).toFixed(4)}, ${Number(item.longitude).toFixed(4)}` : 'No GPS';
+          const doctor = item.custom_doctor || 'No doctor';
+          const hospital = item.custom_hospital_name || 'No hospital';
           html += `
             <div class="checkin-row">
               ${avatarHtml(empImage, empName)}
               <div class="checkin-row-body">
                 <div class="checkin-row-title">${empName} · ${item.log_type} at ${timeStr}</div>
-                <div class="checkin-row-meta">GPS: ${coordsStr}${item.shift ? ' · ' + item.shift : ''}</div>
+                <div class="checkin-row-meta">Doctor: ${escapeHtml(doctor)} · Hospital: ${escapeHtml(hospital)}</div>
               </div>
               <span class="status-badge ${badgeClass}">${item.log_type}</span>
             </div>
@@ -2266,6 +2355,7 @@
       });
       daysEl.innerHTML = html;
       document.getElementById('cal-day-detail').innerText = 'Select a day for details.';
+      showMonthlyVisitReport();
     }
 
     function shiftCalendar(delta) {
@@ -2284,6 +2374,39 @@
       const firstIn = d.first_in ? new Date(d.first_in).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
       const lastOut = d.last_out ? new Date(d.last_out).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '—';
       el.innerHTML = `<strong>${dateStr}</strong> · ${d.logs} log(s)<br>First IN: ${firstIn} · Last OUT: ${lastOut}`;
+      renderVisitReport((calendarData.report_rows || []).filter(row => row.time.slice(0, 10) === dateStr), `${dateStr} Details`);
+    }
+
+    function escapeHtml(value) {
+      const el = document.createElement('div');
+      el.textContent = value == null ? '' : String(value);
+      return el.innerHTML;
+    }
+
+    function showMonthlyVisitReport() {
+      if (!calendarData) return;
+      renderVisitReport(calendarData.report_rows || [], `${calendarData.month_label} Details`);
+    }
+
+    function renderVisitReport(rows, title) {
+      const container = document.getElementById('monthly-visit-report');
+      if (!container) return;
+      const visitRows = rows.filter(row => row.doctor || row.hospital);
+      if (!visitRows.length) {
+        container.innerHTML = `<div class="card-title">${escapeHtml(title)}</div><p style="font-size:12px;color:var(--gray-500);">No Doctor visits recorded.</p>`;
+        return;
+      }
+      container.innerHTML = `<div class="card-title">${escapeHtml(title)}</div>` + visitRows.map(row => {
+        const dt = new Date(row.time);
+        const dateTime = `${dt.toLocaleDateString()} ${dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+        return `<div class="checkin-row">
+          <div class="checkin-row-body">
+            <div class="checkin-row-title">${escapeHtml(row.doctor || '—')}</div>
+            <div class="checkin-row-meta">${escapeHtml(row.hospital || '—')} · ${escapeHtml(row.city || 'No city')}</div>
+            <div class="checkin-row-meta">${escapeHtml(dateTime)} · ${escapeHtml(row.log_type || '')}</div>
+          </div>
+        </div>`;
+      }).join('');
     }
 
     let teamReportMode = 'day';
@@ -2501,13 +2624,7 @@
     }
 
     async function fetchLeaves() {
-      const data = await callApi('frappe.client.get_list', {
-        doctype: 'Leave Application',
-        fields: ['name', 'leave_type', 'from_date', 'to_date', 'total_leave_days', 'status', 'posting_date'],
-        filters: currentUser ? { employee: currentUser.employee.name } : {},
-        order_by: 'posting_date desc',
-        limit_page_length: 30
-      });
+      const data = await callApi('hr_mobile_app.api.get_employee_leaves');
       
       if (!data) return;
       
@@ -2575,6 +2692,10 @@
     }
 
     // 4. PAYROLL & SALARY SLIPS MODULE
+    function formatAmount(value) {
+      return Number(value || 0).toLocaleString([], { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
     async function fetchSalarySlips() {
       const data = await callApi('hr_mobile_app.api.get_employee_salary_slips');
       if (!data) return;
@@ -2594,7 +2715,7 @@
               <span class="payslip-id">${item.name}</span>
               <span class="payslip-period">${periodStr}</span>
             </div>
-            <span class="payslip-amount">${item.currency} ${item.net_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+            <span class="payslip-amount">${item.currency} ${formatAmount(item.net_pay)}</span>
           </div>
         `;
       });
@@ -2612,7 +2733,7 @@
         earningsHtml += `
           <tr>
             <td>${e.salary_component}</td>
-            <td class="amount-col">${data.currency} ${e.amount.toLocaleString([], {minimumFractionDigits: 2})}</td>
+            <td class="amount-col">${data.currency} ${formatAmount(e.amount)}</td>
           </tr>
         `;
       });
@@ -2622,7 +2743,7 @@
         deductionsHtml += `
           <tr>
             <td>${d.salary_component}</td>
-            <td class="amount-col">${data.currency} ${d.amount.toLocaleString([], {minimumFractionDigits: 2})}</td>
+            <td class="amount-col">${data.currency} ${formatAmount(d.amount)}</td>
           </tr>
         `;
       });
@@ -2630,8 +2751,16 @@
       content.innerHTML = `
         <div class="slip-section">
           <div class="slip-row">
+            <span class="slip-label">Company:</span>
+            <span class="slip-value">${escapeHtml(data.company || '—')}</span>
+          </div>
+          <div class="slip-row">
+            <span class="slip-label">Department:</span>
+            <span class="slip-value">${escapeHtml(data.department || '—')}</span>
+          </div>
+          <div class="slip-row">
             <span class="slip-label">Employee:</span>
-            <span class="slip-value">${data.employee_name} (${data.employee})</span>
+            <span class="slip-value">${escapeHtml(data.employee_name)} (${escapeHtml(data.employee)})</span>
           </div>
           <div class="slip-row">
             <span class="slip-label">Period:</span>
@@ -2680,17 +2809,20 @@
         <div class="slip-section" style="border-bottom: none; padding-bottom: 0;">
           <div class="slip-row" style="font-size: 14px; font-weight: 700; color: var(--gray-800);">
             <span>Gross Pay:</span>
-            <span>${data.currency} ${data.gross_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+            <span>${data.currency} ${formatAmount(data.gross_pay)}</span>
           </div>
           <div class="slip-row" style="font-size: 14px; font-weight: 700; color: var(--danger);">
             <span>Total Deductions:</span>
-            <span>${data.currency} ${data.total_deduction.toLocaleString([], {minimumFractionDigits: 2})}</span>
+            <span>${data.currency} ${formatAmount(data.total_deduction)}</span>
           </div>
           <div class="slip-row" style="font-size: 16px; font-weight: 800; color: var(--primary); margin-top: 8px;">
             <span>Net Take-Home:</span>
-            <span>${data.currency} ${data.net_pay.toLocaleString([], {minimumFractionDigits: 2})}</span>
+            <span>${data.currency} ${formatAmount(data.net_pay)}</span>
           </div>
         </div>
+        <a class="btn btn-primary" style="margin-top:14px;" href="/api/method/hr_mobile_app.api.download_salary_slip_pdf?name=${encodeURIComponent(data.name)}" target="_blank" rel="noopener">
+          Download Salary Slip PDF
+        </a>
       `;
       
       document.getElementById('payslip-modal').style.display = 'flex';

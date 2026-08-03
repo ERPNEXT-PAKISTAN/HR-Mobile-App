@@ -1,6 +1,6 @@
 
 import frappe
-from frappe.utils import cint, flt, getdate, get_first_day, get_last_day, nowdate, get_url
+from frappe.utils import add_months, cint, flt, getdate, get_first_day, get_last_day, nowdate, get_url
 
 
 def _resolve_employee(user=None):
@@ -31,6 +31,21 @@ def _file_url(path):
 		return get_url(path if str(path).startswith("/") else f"/{path}")
 	except Exception:
 		return path if str(path).startswith("/") else f"/{path}"
+
+
+CHECKIN_VISIT_FIELDS = (
+	"custom_doctor", "custom_hospital_name", "custom_remarks", "custom_market_shift",
+)
+
+
+def _checkin_visit_fields():
+	"""Return only optional visit fields that exist on this site's Employee Checkin."""
+	meta = frappe.get_meta("Employee Checkin")
+	return {fieldname for fieldname in CHECKIN_VISIT_FIELDS if meta.has_field(fieldname)}
+
+
+def _has_doctors_doctype():
+	return bool(frappe.db.exists("DocType", "Doctors"))
 
 
 @frappe.whitelist()
@@ -67,8 +82,13 @@ def get_hr_app_user_info():
 	is_manager = len(subordinates) > 0
 
 	# Leave balance summary
-	leave_allocations = frappe.get_all("Leave Allocation", 
-		filters={"employee": emp_name, "docstatus": 1}, 
+	year_start = getdate(nowdate()).replace(month=1, day=1)
+	year_end = getdate(nowdate()).replace(month=12, day=31)
+	leave_allocations = frappe.get_all("Leave Allocation",
+		filters={
+			"employee": emp_name, "docstatus": 1,
+			"from_date": ["<=", year_end], "to_date": [">=", year_start],
+		},
 		fields=["leave_type", "total_leaves_allocated", "from_date", "to_date"]
 	)
 
@@ -77,8 +97,8 @@ def get_hr_app_user_info():
 		taken_result = frappe.db.sql("""
 			SELECT SUM(total_leave_days) FROM `tabLeave Application`
 			WHERE employee = %s AND leave_type = %s AND status = 'Approved'
-			AND from_date >= %s AND to_date <= %s AND docstatus = 1
-		""", (emp_name, alloc.leave_type, alloc.from_date, alloc.to_date))
+			AND from_date <= %s AND to_date >= %s AND docstatus = 1
+		""", (emp_name, alloc.leave_type, year_end, year_start))
 		taken = flt(taken_result[0][0]) if taken_result and taken_result[0][0] else 0.0
 
 		leave_summary.append({
@@ -154,7 +174,30 @@ def get_hr_app_user_info():
 
 
 @frappe.whitelist()
-def mark_employee_checkin(log_type, latitude=None, longitude=None):
+def get_checkin_visit_options():
+	"""Return suggestions for the optional call/visit check-in fields."""
+	if frappe.session.user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+
+	available_fields = _checkin_visit_fields()
+	if "custom_doctor" not in available_fields or not _has_doctors_doctype():
+		return {"enabled": False, "doctors": []}
+
+	doctor_fields = ["name"]
+	if frappe.get_meta("Doctors").has_field("hospital_name"):
+		doctor_fields.append("hospital_name")
+	doctors = frappe.get_all(
+		"Doctors", fields=doctor_fields, order_by="modified desc",
+		limit_page_length=200, ignore_permissions=True,
+	)
+	return {"enabled": True, "doctors": doctors}
+
+
+@frappe.whitelist()
+def mark_employee_checkin(
+	log_type, latitude=None, longitude=None, custom_doctor=None,
+	custom_hospital_name=None, custom_remarks=None, custom_market_shift=None,
+):
 	from datetime import timedelta
 
 	from frappe.utils import get_datetime, now_datetime
@@ -170,6 +213,20 @@ def mark_employee_checkin(log_type, latitude=None, longitude=None):
 	log_type = (log_type or "").strip().upper()
 	if log_type not in ("IN", "OUT"):
 		frappe.throw("Invalid log type. Use IN or OUT.")
+
+	custom_doctor = (custom_doctor or "").strip()
+	custom_remarks = (custom_remarks or "").strip()
+	custom_market_shift = (custom_market_shift or "").strip()
+	visit_fields = _checkin_visit_fields()
+	doctors_available = _has_doctors_doctype()
+	if "custom_doctor" in visit_fields and custom_doctor and doctors_available and not frappe.db.exists("Doctors", custom_doctor):
+		frappe.throw("Please select a valid Doctor.")
+	# Hospital is dependent on Doctor; never accept a mismatched client value.
+	custom_hospital_name = None
+	if doctors_available and custom_doctor and frappe.get_meta("Doctors").has_field("hospital_name"):
+		custom_hospital_name = frappe.db.get_value("Doctors", custom_doctor, "hospital_name")
+	if "custom_market_shift" in visit_fields and custom_market_shift and custom_market_shift not in ("Morning", "Evening"):
+		frappe.throw("Please select a valid Shift.")
 
 	# Ignore accidental double-taps within a few seconds (same log type).
 	recent = frappe.db.sql(
@@ -210,8 +267,7 @@ def mark_employee_checkin(log_type, latitude=None, longitude=None):
 		check_time = check_time + timedelta(seconds=1)
 
 	try:
-		checkin = frappe.get_doc(
-			{
+		checkin_values = {
 				"doctype": "Employee Checkin",
 				"employee": emp_name,
 				"log_type": log_type,
@@ -221,7 +277,14 @@ def mark_employee_checkin(log_type, latitude=None, longitude=None):
 				"latitude": flt(latitude) if latitude else None,
 				"longitude": flt(longitude) if longitude else None,
 			}
-		)
+		optional_values = {
+			"custom_doctor": custom_doctor or None,
+			"custom_hospital_name": custom_hospital_name or None,
+			"custom_remarks": custom_remarks or None,
+			"custom_market_shift": custom_market_shift or None,
+		}
+		checkin_values.update({key: value for key, value in optional_values.items() if key in visit_fields})
+		checkin = frappe.get_doc(checkin_values)
 		checkin.insert(ignore_permissions=True)
 		frappe.db.commit()
 	except frappe.ValidationError as e:
@@ -270,9 +333,10 @@ def get_employee_checkins(from_date=None, to_date=None):
 	if from_date and to_date:
 		filters["time"] = ["between", [from_date + " 00:00:00", to_date + " 23:59:59"]]
 
+	fields = ["name", "time", "log_type", "device_id", "shift"] + sorted(_checkin_visit_fields())
 	checkins = frappe.get_all("Employee Checkin",
 		filters=filters,
-		fields=["name", "time", "log_type", "latitude", "longitude", "device_id", "shift"],
+		fields=fields,
 		order_by="time desc",
 		limit=100
 	)
@@ -315,6 +379,32 @@ def get_team_checkins(from_date=None, to_date=None):
 	for c in checkins:
 		c["image"] = images.get(c.employee, "")
 	return checkins
+
+
+@frappe.whitelist()
+def get_employee_leaves():
+	"""Return only leave applications overlapping the current calendar year."""
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+	emp_name = _resolve_employee(user)
+	if not emp_name:
+		return []
+	today = getdate(nowdate())
+	year_start = today.replace(month=1, day=1)
+	year_end = today.replace(month=12, day=31)
+	return frappe.get_all(
+		"Leave Application",
+		filters={
+			"employee": emp_name,
+			"from_date": ["<=", year_end],
+			"to_date": [">=", year_start],
+		},
+		fields=["name", "leave_type", "from_date", "to_date", "total_leave_days", "status", "posting_date"],
+		order_by="posting_date desc",
+		limit=100,
+		ignore_permissions=True,
+	)
 
 
 @frappe.whitelist()
@@ -431,11 +521,12 @@ def get_employee_salary_slips():
 	if not emp_name:
 		return []
 
+	period_start = add_months(getdate(nowdate()), -12)
 	slips = frappe.get_all("Salary Slip",
-		filters={"employee": emp_name, "docstatus": 1},
+		filters={"employee": emp_name, "docstatus": 1, "end_date": [">=", period_start]},
 		fields=["name", "start_date", "end_date", "posting_date", "gross_pay", "total_deduction", "net_pay", "currency", "status"],
 		order_by="start_date desc",
-		limit=50
+		limit=24
 	)
 	return slips
 
@@ -481,6 +572,69 @@ def get_salary_slip_details(name):
 
 
 @frappe.whitelist()
+def download_salary_slip_pdf(name):
+	"""Download a self-contained PDF without relying on external print assets."""
+	from html import escape
+
+	from frappe.utils.pdf import get_pdf
+
+	user = frappe.session.user
+	if user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+	emp_name = _resolve_employee(user)
+	slip = frappe.get_doc("Salary Slip", name)
+	if slip.employee != emp_name and user != "Administrator":
+		frappe.throw("You are not authorized to download this Salary Slip.", frappe.PermissionError)
+	if slip.docstatus != 1:
+		frappe.throw("Only submitted Salary Slips can be downloaded.")
+
+	def text(value):
+		return escape(str(value or "—"))
+
+	def money(value):
+		return f"{text(slip.currency)} {flt(value):,.0f}"
+
+	def component_rows(items):
+		return "".join(
+			f"<tr><td>{text(row.salary_component)}</td><td class='amount'>{money(row.amount)}</td></tr>"
+			for row in items
+		) or "<tr><td colspan='2'>None</td></tr>"
+
+	html = f"""
+	<!doctype html><html><head><meta charset="utf-8"><style>
+		body {{ font-family: Arial, sans-serif; color: #17202a; font-size: 11px; }}
+		h1 {{ text-align: center; margin: 0 0 4px; font-size: 22px; }}
+		h2 {{ text-align: center; margin: 0 0 20px; font-size: 15px; font-weight: normal; }}
+		.meta, .components, .totals {{ width: 100%; border-collapse: collapse; margin-bottom: 18px; }}
+		.meta td {{ width: 50%; padding: 5px 8px; border: 1px solid #dfe4e8; }}
+		.components th, .components td {{ padding: 7px 8px; border: 1px solid #dfe4e8; }}
+		.components th {{ background: #f2f4f6; text-align: left; }}
+		.amount {{ text-align: right; }}
+		.section {{ font-size: 13px; font-weight: bold; margin: 12px 0 6px; }}
+		.totals td {{ padding: 6px 8px; border-bottom: 1px solid #dfe4e8; }}
+		.net {{ font-size: 14px; font-weight: bold; }}
+	</style></head><body>
+		<h1>{text(slip.company)}</h1><h2>Salary Slip</h2>
+		<table class="meta">
+			<tr><td><b>Employee:</b> {text(slip.employee_name)} ({text(slip.employee)})</td><td><b>Department:</b> {text(slip.department)}</td></tr>
+			<tr><td><b>Period:</b> {text(slip.start_date)} to {text(slip.end_date)}</td><td><b>Posting Date:</b> {text(slip.posting_date)}</td></tr>
+			<tr><td><b>Designation:</b> {text(slip.designation)}</td><td><b>Payment Days:</b> {flt(slip.payment_days):,.0f} / {flt(slip.total_working_days):,.0f}</td></tr>
+		</table>
+		<div class="section">Earnings</div><table class="components"><tr><th>Component</th><th class="amount">Amount</th></tr>{component_rows(slip.earnings)}</table>
+		<div class="section">Deductions</div><table class="components"><tr><th>Component</th><th class="amount">Amount</th></tr>{component_rows(slip.deductions)}</table>
+		<table class="totals">
+			<tr><td>Gross Pay</td><td class="amount">{money(slip.gross_pay)}</td></tr>
+			<tr><td>Total Deductions</td><td class="amount">{money(slip.total_deduction)}</td></tr>
+			<tr class="net"><td>Net Take-Home</td><td class="amount">{money(slip.net_pay)}</td></tr>
+		</table>
+	</body></html>
+	"""
+	frappe.local.response.filename = f"{slip.name}.pdf"
+	frappe.local.response.filecontent = get_pdf(html, options={"page-size": "A4"})
+	frappe.local.response.type = "download"
+
+
+@frappe.whitelist()
 def get_monthly_checkin_calendar(year=None, month=None):
 	"""Return monthly day status for the logged-in employee check-ins."""
 	user = frappe.session.user
@@ -497,16 +651,39 @@ def get_monthly_checkin_calendar(year=None, month=None):
 	first = get_first_day(f"{year}-{month:02d}-01")
 	last = get_last_day(first)
 
+	visit_fields = _checkin_visit_fields()
+	fields = ["time", "log_type"] + sorted(visit_fields)
 	rows = frappe.get_all(
 		"Employee Checkin",
 		filters={
 			"employee": emp_name,
 			"time": ["between", [str(first) + " 00:00:00", str(last) + " 23:59:59"]],
 		},
-		fields=["time", "log_type", "latitude", "longitude"],
+		fields=fields,
 		order_by="time asc",
 		limit=1000,
 	)
+	doctor_names = list({r.get("custom_doctor") for r in rows if r.get("custom_doctor")})
+	doctor_cities = {}
+	if doctor_names and _has_doctors_doctype() and frappe.get_meta("Doctors").has_field("city_name"):
+		doctor_cities = {
+			d.name: (d.city_name or "")
+			for d in frappe.get_all(
+				"Doctors", filters={"name": ["in", doctor_names]}, fields=["name", "city_name"],
+				ignore_permissions=True,
+			)
+		}
+	report_rows = [
+		{
+			"time": str(r.time),
+			"log_type": r.log_type,
+			"doctor": r.get("custom_doctor") or "",
+			"hospital": r.get("custom_hospital_name") or "",
+			"city": doctor_cities.get(r.get("custom_doctor"), ""),
+			"market_shift": r.get("custom_market_shift") or "",
+		}
+		for r in rows
+	]
 
 	by_day = {}
 	for r in rows:
@@ -558,6 +735,7 @@ def get_monthly_checkin_calendar(year=None, month=None):
 		"month": month,
 		"month_label": first.strftime("%B %Y"),
 		"days": days,
+		"report_rows": report_rows,
 		"summary": {
 			"present_days": present,
 			"total_logs": len(rows),
@@ -831,4 +1009,3 @@ def get_team_attendance_report(mode="day", report_date=None, year=None, month=No
 			"out_logs": total_out,
 		},
 	}
-
