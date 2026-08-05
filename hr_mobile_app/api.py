@@ -118,6 +118,22 @@ def _build_employee_card(emp_doc):
 	return {"company": company, "qr_code": _employee_qr_data_uri(card_data), **card_data}
 
 
+@frappe.whitelist(allow_guest=True)
+def get_hr_app_branding():
+	"""Return safe company branding for the public login screen."""
+	company = frappe.db.get_single_value("Global Defaults", "default_company")
+	if not company:
+		companies = frappe.get_all("Company", pluck="name", order_by="creation asc", limit=1)
+		company = companies[0] if companies else None
+	if not company:
+		return {"company_name": "Company", "company_logo": ""}
+	company_doc = frappe.get_doc("Company", company)
+	return {
+		"company_name": company_doc.company_name or company_doc.name,
+		"company_logo": _file_url(getattr(company_doc, "company_logo", None)),
+	}
+
+
 CHECKIN_VISIT_FIELDS = (
 	"custom_doctor", "custom_hospital_name", "custom_remarks", "custom_market_shift",
 )

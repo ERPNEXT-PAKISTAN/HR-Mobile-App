@@ -391,7 +391,9 @@
       font-weight: 800;
       box-shadow: var(--shadow-premium);
       margin-bottom: 16px;
+      overflow: hidden;
     }
+    .login-logo img { width: 100%; height: 100%; padding: 6px; object-fit: contain; background: #fff; }
 
     .login-title {
       font-family: 'Outfit', sans-serif;
@@ -400,6 +402,8 @@
       color: var(--gray-800);
       margin-bottom: 8px;
     }
+    .login-title-company, .login-title-portal { display: block; }
+    .login-title-portal { margin-top: 3px; color: var(--primary-hover); font-size: 20px; }
 
     .login-subtitle {
       font-size: 14px;
@@ -914,6 +918,10 @@
       margin-bottom: 16px;
       z-index: 1;
     }
+    .team-map-note { margin: -7px 0 12px; color: var(--gray-500); font-size: 11px; line-height: 1.45; }
+    .team-map-status { margin-top: 10px; color: var(--gray-600); font-size: 11px; font-weight: 600; }
+    .team-location-button { appearance: none; width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left; }
+    .team-location-button:hover .checkin-row-title { color: var(--primary-hover); }
 
     .employee-card-trigger {
       appearance: none;
@@ -1575,8 +1583,8 @@
       <section class="screen active" id="screen-login">
         <div class="login-container">
           <div class="login-header">
-            <div class="login-logo">H</div>
-            <h1 class="login-title">ERPNext HR Portal</h1>
+            <div class="login-logo" id="login-company-logo">H</div>
+            <h1 class="login-title"><span class="login-title-company" id="login-company-name">Company</span><span class="login-title-portal">HR Portal</span></h1>
             <p class="login-subtitle">Sign in with your employee account</p>
           </div>
           
@@ -1920,7 +1928,9 @@
           <!-- Team Live Checkin Map -->
           <div class="card">
             <div class="card-title">Subordinate Checkin Map</div>
+            <p class="team-map-note">Shows each subordinate's latest check-in that contains GPS coordinates. Tap an employee below to focus their marker.</p>
             <div id="team-map-view"></div>
+            <div class="team-map-status" id="team-map-status">Loading team locations…</div>
           </div>
 
           <!-- Pending leave approvals list -->
@@ -2033,6 +2043,7 @@
     let mapMarker = null;
     let teamMap = null;
     let teamMarkers = [];
+    let teamMarkerByEmployee = new Map();
     let calendarCursor = new Date();
     let calendarData = null;
     let teamBoardMode = 'today';
@@ -2124,6 +2135,23 @@
         console.error("API Call error:", err);
         if (!silent) showToast("Network error. Please try again.", true);
         return null;
+      }
+    }
+
+    async function loadLoginBranding() {
+      const branding = await callApi('hr_mobile_app.api.get_hr_app_branding', {}, { silent: true });
+      if (!branding) return;
+      const companyName = branding.company_name || 'Company';
+      document.getElementById('login-company-name').textContent = companyName;
+      const logo = document.getElementById('login-company-logo');
+      if (branding.company_logo) {
+        const image = document.createElement('img');
+        image.src = branding.company_logo;
+        image.alt = `${companyName} logo`;
+        image.onerror = () => logo.replaceChildren(document.createTextNode(companyName.charAt(0).toUpperCase()));
+        logo.replaceChildren(image);
+      } else {
+        logo.textContent = companyName.charAt(0).toUpperCase();
       }
     }
 
@@ -3308,14 +3336,14 @@
         let teamHtml = '';
         currentUser.subordinates.forEach(s => {
           teamHtml += `
-            <div class="checkin-row">
+            <button type="button" class="checkin-row team-location-button" onclick="focusTeamEmployee(decodeURIComponent('${encodeURIComponent(s.name)}'))">
               ${avatarHtml(s.image, s.employee_name)}
               <div class="checkin-row-body">
                 <div class="checkin-row-title">${s.employee_name}</div>
-                <div class="checkin-row-meta">${s.designation || 'Staff'} | ${s.department || ''}</div>
+                <div class="checkin-row-meta">${s.designation || 'Staff'} | ${s.department || ''} · Tap for location</div>
               </div>
               <span class="status-badge badge-in">Active</span>
-            </div>
+            </button>
           `;
         });
         teamList.innerHTML = teamHtml || '<p style="color: var(--gray-500); font-size: 13px; text-align: center;">No subordinates configured.</p>';
@@ -3345,48 +3373,71 @@
     // Init Leaflet map for subordinates (team locations)
     async function initTeamMap() {
       const container = document.getElementById('team-map-view');
-      if (teamMap) {
-        teamMap.invalidateSize();
-        return;
+      const status = document.getElementById('team-map-status');
+      if (!teamMap) {
+        teamMap = L.map(container).setView([currentLat, currentLng], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(teamMap);
       }
-      
-      teamMap = L.map(container).setView([currentLat, currentLng], 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(teamMap);
-      
+      teamMap.invalidateSize();
+      status.textContent = 'Loading latest GPS check-ins…';
+
       // Fetch checkins for subordinates
       const checkins = await callApi('hr_mobile_app.api.get_team_checkins');
-      if (!checkins) return;
+      if (!checkins) {
+        status.textContent = 'Could not load team locations.';
+        return;
+      }
       
       // Clean old markers
       teamMarkers.forEach(m => m.remove());
       teamMarkers = [];
-      
-      if (checkins.length === 0) {
-        // Add a default fallback marker for team representation
-        const mockSub1 = L.marker([currentLat + 0.005, currentLng + 0.005]).addTo(teamMap)
-          .bindPopup('<strong>John Doe</strong><br>Last Check-In: IN<br>Location: Accounts Office');
-        teamMarkers.push(mockSub1);
+      teamMarkerByEmployee = new Map();
+
+      const addedEmp = new Set();
+      checkins.forEach(log => {
+        const latitude = Number(log.latitude);
+        const longitude = Number(log.longitude);
+        const hasCoordinates = log.latitude !== null && log.latitude !== '' && log.longitude !== null && log.longitude !== '';
+        // Results are newest first, so the first GPS log is the employee's latest location.
+        if (hasCoordinates && Number.isFinite(latitude) && Number.isFinite(longitude) && !addedEmp.has(log.employee)) {
+          addedEmp.add(log.employee);
+          const timeObj = new Date(log.time);
+          const marker = L.marker([latitude, longitude]).addTo(teamMap)
+            .bindPopup(`<strong>${escapeHtml(log.employee_name || log.employee)}</strong><br>Check-in: ${escapeHtml(log.log_type || '—')}<br>${escapeHtml(timeObj.toLocaleString())}`);
+          teamMarkers.push(marker);
+          teamMarkerByEmployee.set(log.employee, marker);
+        }
+      });
+
+      if (teamMarkers.length) {
+        const group = L.featureGroup(teamMarkers);
+        teamMap.fitBounds(group.getBounds().pad(0.2), { maxZoom: 16 });
+        status.textContent = `${teamMarkers.length} subordinate location${teamMarkers.length === 1 ? '' : 's'} shown from latest GPS check-ins.`;
       } else {
-        const addedEmp = new Set();
-        checkins.forEach(log => {
-          // Plot only the latest checkin for each subordinate
-          if (log.latitude && log.longitude && !addedEmp.has(log.employee)) {
-            addedEmp.add(log.employee);
-            const timeObj = new Date(log.time);
-            const marker = L.marker([log.latitude, log.longitude]).addTo(teamMap)
-              .bindPopup(`<strong>${log.employee_name}</strong><br>Log Type: ${log.log_type}<br>Time: ${timeObj.toLocaleTimeString()}`);
-            teamMarkers.push(marker);
-          }
-        });
+        status.textContent = 'No subordinate GPS locations yet. A marker appears after a subordinate checks in with location permission enabled.';
       }
       
       setTimeout(() => teamMap.invalidateSize(), 300);
     }
 
+    function focusTeamEmployee(employee) {
+      const marker = teamMarkerByEmployee.get(employee);
+      if (!marker) {
+        const subordinate = (currentUser?.subordinates || []).find(item => item.name === employee);
+        showToast(`${subordinate?.employee_name || 'This employee'} has no GPS check-in location yet.`, true);
+        return;
+      }
+      const mapCard = document.getElementById('team-map-view');
+      mapCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      teamMap.flyTo(marker.getLatLng(), 16, { duration: 0.7 });
+      setTimeout(() => marker.openPopup(), 750);
+    }
+
     // Initialization trigger
     window.addEventListener('DOMContentLoaded', async () => {
+      await loadLoginBranding();
       // Check if user is already logged in
       const data = await callApi('hr_mobile_app.api.get_hr_app_user_info');
       if (data && data.logged_in) {
