@@ -915,6 +915,241 @@
       z-index: 1;
     }
 
+    .employee-card-trigger {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      cursor: pointer;
+      text-align: left;
+      border-radius: 12px;
+    }
+
+    .employee-card-trigger:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 4px;
+    }
+
+    .employee-card-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      padding: 18px;
+      background: linear-gradient(160deg, #062f35 0%, #086b59 52%, #e6fbf3 52%);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(18px);
+      transition: opacity .22s ease, transform .22s ease, visibility .22s;
+      overflow-y: auto;
+    }
+
+    .employee-card-overlay.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .employee-card-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .employee-card-toolbar h2 { font: 700 18px 'Outfit', sans-serif; }
+
+    .employee-card-close {
+      width: 38px;
+      height: 38px;
+      border: 1px solid rgba(255,255,255,.35);
+      border-radius: 50%;
+      background: rgba(255,255,255,.14);
+      color: #fff;
+      font-size: 25px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .employee-id-card {
+      width: 100%;
+      margin: auto 0;
+      background: linear-gradient(155deg, #101f45 0%, #18376f 55%, #244f92 100%);
+      border-radius: 26px;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(8, 22, 53, .34);
+      position: relative;
+    }
+
+    .employee-id-card::before {
+      content: "";
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      border-radius: 50%;
+      background: rgba(185,212,255,.08);
+      top: 85px;
+      right: -125px;
+    }
+
+    .id-card-company {
+      min-height: 92px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+      color: #fff;
+      background: rgba(6, 17, 43, .76);
+      border-bottom: 1px solid rgba(185,212,255,.2);
+      text-align: center;
+    }
+
+    .id-card-company-logo {
+      width: 48px;
+      height: 48px;
+      padding: 5px;
+      object-fit: contain;
+      border-radius: 12px;
+      background: #fff;
+      display: none;
+    }
+
+    .id-card-company-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,.16);
+      font: 800 22px 'Outfit', sans-serif;
+    }
+
+    .id-card-company-name {
+      max-width: 220px;
+      font: 700 18px/1.2 'Outfit', sans-serif;
+      letter-spacing: -.2px;
+    }
+
+    .id-card-body {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 138px;
+      gap: 18px;
+      align-items: center;
+      padding: 30px 25px 22px;
+    }
+
+    .id-card-photo {
+      width: 146px;
+      height: 170px;
+      max-width: 100%;
+      border-radius: 20px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #e7efff, #aac5f3);
+      border: 5px solid #fff;
+      box-shadow: 0 12px 25px rgba(9,27,70,.3);
+    }
+
+    .id-card-photo-fallback {
+      width: 146px;
+      height: 170px;
+      max-width: 100%;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #e7efff, #aac5f3);
+      color: #18376f;
+      font: 800 44px 'Outfit', sans-serif;
+      border: 5px solid #fff;
+      box-shadow: 0 12px 25px rgba(9,27,70,.3);
+    }
+
+    .id-card-qr-wrap { text-align: center; position: relative; }
+    .id-card-qr {
+      display: block;
+      width: 138px;
+      height: 138px;
+      padding: 8px;
+      border: 1px solid var(--gray-200);
+      border-radius: 14px;
+      background: #fff;
+    }
+    .id-card-qr-label {
+      margin-top: 7px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: #b9d4ff;
+      text-transform: uppercase;
+    }
+
+    .id-card-details { position: relative; padding: 0 25px 27px; color: #fff; }
+    .id-card-name { font: 800 24px/1.15 'Outfit', sans-serif; color: #fff; }
+    .id-card-designation { color: #b9d4ff; font-size: 13px; font-weight: 700; margin-top: 5px; }
+    .id-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+    .id-card-meta-item { padding-top: 10px; border-top: 1px solid rgba(185,212,255,.3); }
+    .id-card-meta-label { display: block; color: #b9d4ff; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; }
+    .id-card-meta-value { display: block; color: #fff; font-size: 12px; font-weight: 700; margin-top: 4px; }
+    .id-card-info { margin-top: 18px; padding: 14px; border-radius: 13px; background: rgba(255,255,255,.1); color: rgba(255,255,255,.84); font-size: 11px; line-height: 1.5; }
+    .id-card-info-row + .id-card-info-row { margin-top: 8px; }
+    .id-card-info strong { display: block; color: #b9d4ff; font-size: 9px; text-transform: uppercase; letter-spacing: .8px; margin-bottom: 2px; }
+    .id-card-mobile { display: block; margin-top: 9px; color: #fff; font-size: 13px; font-weight: 700; }
+    .employee-card-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .employee-card-action { border: 1px solid #fff; border-radius: 11px; padding: 11px; color: #18376f; background: #fff; box-shadow: 0 5px 14px rgba(4,35,44,.18); font-weight: 700; font-size: 12px; cursor: pointer; text-align: center; text-decoration: none; }
+    .employee-card-action.primary { color: #fff; background: #18376f; border-color: #315a9b; }
+
+    .doctor-picker { position: relative; }
+    .doctor-results {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      right: 0;
+      z-index: 80;
+      display: none;
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 5px;
+      border: 1px solid var(--gray-200);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 14px 30px rgba(15,23,42,.16);
+    }
+    .doctor-results.open { display: block; }
+    .doctor-result {
+      display: block;
+      width: 100%;
+      min-height: 46px;
+      padding: 11px 12px;
+      border: 0;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--gray-800);
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      cursor: pointer;
+    }
+    .doctor-result:active, .doctor-result:hover { background: var(--primary-light); color: #075e4c; }
+    .doctor-result + .doctor-result { border-top: 1px solid var(--gray-100); }
+    .doctor-result-empty { padding: 13px; color: var(--gray-500); font-size: 13px; }
+
+    @media print {
+      body { display: block; background: #fff; }
+      .app-simulator { max-width: none; width: 100%; height: auto; border: 0; box-shadow: none; overflow: visible; }
+      .app-header, .screen-container, .app-nav, .toast-container, .employee-card-toolbar, .employee-card-actions { display: none !important; }
+      .employee-card-overlay { position: static; display: block; padding: 0; opacity: 1; visibility: visible; transform: none; background: #fff; overflow: visible; }
+      .employee-id-card { width: 90mm; margin: 0 auto; box-shadow: none; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+
     /* Toast Notification system */
     .toast-container {
       position: absolute;
@@ -1274,13 +1509,13 @@
       </div>
       
       <div class="header-top" style="margin-bottom: 0;">
-        <div class="header-user">
+        <button type="button" class="header-user employee-card-trigger" id="employee-card-trigger" onclick="openEmployeeCard()" aria-label="Open employee card">
           <div class="user-avatar" id="header-avatar-initials">T</div>
           <div class="user-details">
             <span class="user-name" id="header-user-name">Taimoor</span>
             <span class="user-role" id="header-user-role">Accountant</span>
           </div>
-        </div>
+        </button>
         
         <div class="status-badge badge-in" id="header-checkin-badge">
           <div class="badge-dot"></div>
@@ -1288,6 +1523,50 @@
         </div>
       </div>
     </header>
+
+    <section class="employee-card-overlay" id="employee-card-overlay" aria-hidden="true" aria-labelledby="employee-card-title">
+      <div class="employee-card-toolbar">
+        <h2 id="employee-card-title">Employee Card</h2>
+        <button type="button" class="employee-card-close" onclick="closeEmployeeCard()" aria-label="Close employee card">×</button>
+      </div>
+      <article class="employee-id-card">
+        <div class="id-card-company">
+          <img class="id-card-company-logo" id="id-card-company-logo" alt="Company logo">
+          <div class="id-card-company-mark" id="id-card-company-mark">C</div>
+          <div class="id-card-company-name" id="id-card-company-name">Company</div>
+        </div>
+        <div class="id-card-body">
+          <div id="id-card-photo-wrap"></div>
+          <div class="id-card-qr-wrap">
+            <img class="id-card-qr" id="id-card-qr" alt="Employee QR code">
+            <div class="id-card-qr-label">Scan to identify</div>
+          </div>
+        </div>
+        <div class="id-card-details">
+          <div class="id-card-name" id="id-card-name">Employee Name</div>
+          <div class="id-card-designation" id="id-card-designation">Employee</div>
+          <div class="id-card-meta">
+            <div class="id-card-meta-item">
+              <span class="id-card-meta-label">Employee Code</span>
+              <span class="id-card-meta-value" id="id-card-code">—</span>
+            </div>
+            <div class="id-card-meta-item">
+              <span class="id-card-meta-label">Department</span>
+              <span class="id-card-meta-value" id="id-card-department">—</span>
+            </div>
+          </div>
+          <div class="id-card-info">
+            <div class="id-card-info-row"><strong>Company Address</strong><span id="id-card-address">Address not available</span></div>
+            <span class="id-card-mobile" id="id-card-mobile">Not available</span>
+          </div>
+        </div>
+      </article>
+      <div class="employee-card-actions">
+        <button type="button" class="employee-card-action" onclick="printEmployeeCard()">Print</button>
+        <a class="employee-card-action primary" href="/api/method/hr_mobile_app.api.download_employee_card_pdf">PDF</a>
+        <button type="button" class="employee-card-action" onclick="shareEmployeeCard()">Share</button>
+      </div>
+    </section>
 
     <!-- CONTENT SCREENS -->
     <main class="screen-container">
@@ -1449,8 +1728,10 @@
             <div class="visit-details-panel" id="visit-details-panel">
               <div class="form-group">
                 <label for="checkin-doctor" class="form-label">Doctor</label>
-                <input id="checkin-doctor" name="custom_doctor" class="form-control" list="checkin-doctor-options" placeholder="Search and select doctor" oninput="setDoctorHospital()">
-                <datalist id="checkin-doctor-options"></datalist>
+                <div class="doctor-picker">
+                  <input id="checkin-doctor" name="custom_doctor" class="form-control" placeholder="Search and select doctor" autocomplete="off" oninput="filterDoctorOptions()" onfocus="filterDoctorOptions()" onblur="closeDoctorOptionsSoon()">
+                  <div class="doctor-results" id="checkin-doctor-options" role="listbox" aria-label="Doctor suggestions"></div>
+                </div>
               </div>
               <div class="form-group">
                 <label for="checkin-hospital" class="form-label">Hospital</label>
@@ -1757,6 +2038,7 @@
     let teamBoardMode = 'today';
     let visitOptionsLoaded = false;
     let doctorHospitals = new Map();
+    let doctorOptions = [];
     
     // Cookie Helper
     function getCookie(name) {
@@ -1844,6 +2126,124 @@
         return null;
       }
     }
+
+    function renderEmployeeCard(data) {
+      const employee = data.employee || {};
+      const card = data.employee_card || {};
+      const company = card.company || {};
+      const companyName = company.name || employee.company || 'Company';
+      const initials = (employee.employee_name || employee.name || 'E')
+        .split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase();
+
+      document.getElementById('id-card-company-name').textContent = companyName;
+      document.getElementById('id-card-company-mark').textContent = companyName.charAt(0).toUpperCase();
+      document.getElementById('id-card-name').textContent = employee.employee_name || employee.name || 'Employee';
+      document.getElementById('id-card-designation').textContent = employee.designation || 'Employee';
+      document.getElementById('id-card-code').textContent = employee.name || '—';
+      document.getElementById('id-card-department').textContent = employee.department || '—';
+      document.getElementById('id-card-address').textContent = company.address || 'Address not available';
+      document.getElementById('id-card-mobile').textContent = card.mobile || employee.cell_number || 'Not available';
+
+      const companyLogo = document.getElementById('id-card-company-logo');
+      const companyMark = document.getElementById('id-card-company-mark');
+      if (company.logo) {
+        companyLogo.src = company.logo;
+        companyLogo.style.display = 'block';
+        companyMark.style.display = 'none';
+        companyLogo.onerror = () => {
+          companyLogo.style.display = 'none';
+          companyMark.style.display = 'flex';
+        };
+      } else {
+        companyLogo.removeAttribute('src');
+        companyLogo.style.display = 'none';
+        companyMark.style.display = 'flex';
+      }
+
+      const photoWrap = document.getElementById('id-card-photo-wrap');
+      photoWrap.replaceChildren();
+      if (employee.image) {
+        const photo = document.createElement('img');
+        photo.className = 'id-card-photo';
+        photo.src = employee.image;
+        photo.alt = `${employee.employee_name || 'Employee'} photo`;
+        photo.onerror = () => {
+          const fallback = document.createElement('div');
+          fallback.className = 'id-card-photo-fallback';
+          fallback.textContent = initials;
+          photo.replaceWith(fallback);
+        };
+        photoWrap.appendChild(photo);
+      } else {
+        const fallback = document.createElement('div');
+        fallback.className = 'id-card-photo-fallback';
+        fallback.textContent = initials;
+        photoWrap.appendChild(fallback);
+      }
+
+      const qr = document.getElementById('id-card-qr');
+      qr.src = card.qr_code || '';
+      qr.style.visibility = card.qr_code ? 'visible' : 'hidden';
+    }
+
+    function openEmployeeCard() {
+      if (!currentUser) return;
+      renderEmployeeCard(currentUser);
+      const overlay = document.getElementById('employee-card-overlay');
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.querySelector('.employee-card-close').focus();
+    }
+
+    function closeEmployeeCard() {
+      const overlay = document.getElementById('employee-card-overlay');
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.getElementById('employee-card-trigger').focus();
+    }
+
+    function printEmployeeCard() {
+      window.print();
+    }
+
+    async function shareEmployeeCard() {
+      const employee = currentUser?.employee || {};
+      const pdfUrl = '/api/method/hr_mobile_app.api.download_employee_card_pdf';
+      try {
+        const response = await fetch(pdfUrl, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('Could not create card PDF');
+        const blob = await response.blob();
+        const safeCode = (employee.name || 'Employee').replace(/[^a-z0-9_-]/gi, '-');
+        const file = new File([blob], `Employee-Card-${safeCode}.pdf`, { type: 'application/pdf' });
+        if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+          await navigator.share({
+            title: `${employee.employee_name || 'Employee'} Card`,
+            text: `Employee card for ${employee.employee_name || employee.name || ''}`,
+            files: [file]
+          });
+          return;
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.warn('Native card sharing unavailable:', error);
+      }
+
+      const card = currentUser?.employee_card || {};
+      const message = [
+        `Employee Card - ${card.employee_name || employee.employee_name || ''}`,
+        `Code: ${card.employee_code || employee.name || '-'}`,
+        `Designation: ${card.designation || employee.designation || '-'}`,
+        `Department: ${card.department || employee.department || '-'}`,
+        `Company: ${card.company_name || employee.company || '-'}`
+      ].join('\n');
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener');
+    }
+
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && document.getElementById('employee-card-overlay').classList.contains('open')) {
+        closeEmployeeCard();
+      }
+    });
 
     // Screen navigation router
     function switchTab(tabId) {
@@ -2063,18 +2463,54 @@
         return;
       }
       const doctorList = document.getElementById('checkin-doctor-options');
-      doctorHospitals = new Map((data.doctors || []).map(item => [item.name, item.hospital_name || '']));
-      doctorList.replaceChildren(...(data.doctors || []).map(item => {
-        const option = document.createElement('option');
-        option.value = item.name;
-        return option;
-      }));
+      doctorOptions = data.doctors || [];
+      doctorHospitals = new Map(doctorOptions.map(item => [item.name, item.hospital_name || '']));
+      doctorList.replaceChildren();
       visitOptionsLoaded = true;
     }
 
     function setDoctorHospital() {
       const doctor = document.getElementById('checkin-doctor').value.trim();
       document.getElementById('checkin-hospital').value = doctorHospitals.get(doctor) || '';
+    }
+
+    function filterDoctorOptions() {
+      const input = document.getElementById('checkin-doctor');
+      const results = document.getElementById('checkin-doctor-options');
+      const query = input.value.trim().toLocaleLowerCase();
+      const matches = doctorOptions
+        .filter(item => !query || item.name.toLocaleLowerCase().includes(query))
+        .slice(0, 50);
+      results.replaceChildren();
+      if (!matches.length) {
+        const empty = document.createElement('div');
+        empty.className = 'doctor-result-empty';
+        empty.textContent = 'No matching doctor found';
+        results.appendChild(empty);
+      } else {
+        matches.forEach(item => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'doctor-result';
+          button.setAttribute('role', 'option');
+          button.textContent = item.name;
+          button.addEventListener('mousedown', event => event.preventDefault());
+          button.addEventListener('click', () => selectDoctorOption(item.name));
+          results.appendChild(button);
+        });
+      }
+      results.classList.add('open');
+      setDoctorHospital();
+    }
+
+    function selectDoctorOption(name) {
+      document.getElementById('checkin-doctor').value = name;
+      document.getElementById('checkin-hospital').value = doctorHospitals.get(name) || '';
+      document.getElementById('checkin-doctor-options').classList.remove('open');
+    }
+
+    function closeDoctorOptionsSoon() {
+      setTimeout(() => document.getElementById('checkin-doctor-options').classList.remove('open'), 150);
     }
 
     function clearVisitDetails() {

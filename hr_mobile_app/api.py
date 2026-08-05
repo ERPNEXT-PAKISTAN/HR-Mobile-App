@@ -1,4 +1,8 @@
 
+from base64 import b64encode
+from html import escape
+from io import BytesIO
+
 import frappe
 from frappe.utils import add_months, cint, flt, getdate, get_first_day, get_last_day, nowdate, get_url
 
@@ -31,6 +35,87 @@ def _file_url(path):
 		return get_url(path if str(path).startswith("/") else f"/{path}")
 	except Exception:
 		return path if str(path).startswith("/") else f"/{path}"
+
+
+def _employee_qr_data_uri(card_data):
+	"""Build a self-contained QR image so the employee card also works offline."""
+	from pyqrcode import create as qrcreate
+
+	# Low error correction keeps this data-rich code readable by mobile cameras at card size.
+	qr_text = "\n".join(
+		f"{label}: {card_data.get(field) or '-'}"
+		for label, field in (
+			("Company Name", "company_name"),
+			("Company Address", "company_address"),
+			("Employee Name", "employee_name"),
+			("Employee Code", "employee_code"),
+			("Employee Address", "employee_address"),
+			("Mobile", "mobile"),
+			("Designation", "designation"),
+			("Department", "department"),
+			("Website", "website"),
+		)
+	)
+	stream = BytesIO()
+	try:
+		qrcreate(qr_text, error="L", mode="binary").svg(
+			stream, scale=6, background="#ffffff", module_color="#101f45", quiet_zone=4
+		)
+		return f"data:image/svg+xml;base64,{b64encode(stream.getvalue()).decode()}"
+	finally:
+		stream.close()
+
+
+def _get_company_card_details(company):
+	if not company:
+		return {"name": "", "logo": "", "address": ""}
+
+	company_doc = frappe.get_doc("Company", company)
+	logo = _file_url(getattr(company_doc, "company_logo", None))
+	addresses = frappe.db.sql(
+		"""
+		SELECT a.address_line1, a.address_line2, a.city, a.state, a.pincode, a.country
+		FROM `tabAddress` a
+		INNER JOIN `tabDynamic Link` dl ON dl.parent = a.name
+		WHERE dl.parenttype = 'Address'
+			AND dl.link_doctype = 'Company'
+			AND dl.link_name = %s
+		ORDER BY a.is_primary_address DESC, a.modified DESC
+		LIMIT 1
+		""",
+		(company,),
+		as_dict=True,
+	)
+	address = ""
+	if addresses:
+		row = addresses[0]
+		address = ", ".join(
+			str(row.get(field)).strip()
+			for field in ("address_line1", "address_line2", "city", "state", "pincode", "country")
+			if row.get(field)
+		)
+	return {
+		"name": company_doc.company_name or company_doc.name,
+		"logo": logo,
+		"address": address,
+		"website": getattr(company_doc, "website", None) or "",
+	}
+
+
+def _build_employee_card(emp_doc):
+	company = _get_company_card_details(emp_doc.company)
+	card_data = {
+		"company_name": company["name"],
+		"company_address": company["address"],
+		"employee_name": emp_doc.employee_name,
+		"employee_code": emp_doc.name,
+		"employee_address": getattr(emp_doc, "current_address", None) or "",
+		"mobile": getattr(emp_doc, "cell_number", None) or "",
+		"designation": emp_doc.designation or "",
+		"department": emp_doc.department or "",
+		"website": company["website"],
+	}
+	return {"company": company, "qr_code": _employee_qr_data_uri(card_data), **card_data}
 
 
 CHECKIN_VISIT_FIELDS = (
@@ -153,6 +238,7 @@ def get_hr_app_user_info():
 	return {
 		"logged_in": True,
 		"has_employee": True,
+		"employee_card": _build_employee_card(emp_doc),
 		"employee": {
 			"name": emp_doc.name,
 			"employee_name": emp_doc.employee_name,
@@ -162,6 +248,8 @@ def get_hr_app_user_info():
 			"branch": emp_doc.branch,
 			"user_id": emp_doc.user_id,
 			"gender": emp_doc.gender,
+			"current_address": getattr(emp_doc, "current_address", None) or "",
+			"cell_number": getattr(emp_doc, "cell_number", None) or "",
 			"image": _file_url(_employee_image_url(emp_doc.image)),
 			"date_of_joining": str(emp_doc.date_of_joining) if emp_doc.date_of_joining else ""
 		},
@@ -171,6 +259,70 @@ def get_hr_app_user_info():
 		"last_checkin": last_checkin,
 		"shift_details": shift_details
 	}
+
+
+@frappe.whitelist()
+def download_employee_card_pdf():
+	"""Download the signed-in employee's card as a print-ready PDF."""
+	if frappe.session.user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+	employee = _resolve_employee()
+	if not employee:
+		frappe.throw("No Employee document is linked to your user account.")
+
+	emp_doc = frappe.get_doc("Employee", employee)
+	card = _build_employee_card(emp_doc)
+	company = card["company"]
+	photo = _file_url(_employee_image_url(emp_doc.image))
+	logo_html = (
+		f'<img class="logo" src="{escape(company["logo"], quote=True)}">'
+		if company["logo"] else '<div class="logo-fallback">C</div>'
+	)
+	photo_html = (
+		f'<img class="id-card-photo" src="{escape(photo, quote=True)}">'
+		if photo else f'<div class="id-card-photo fallback">{escape((emp_doc.employee_name or "E")[:1])}</div>'
+	)
+	html = f"""
+	<!doctype html><html><head><meta charset="utf-8"><style>
+	@page {{ size: A5 portrait; margin: 12mm; }}
+	* {{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+	body {{ margin:0; font-family:Arial,sans-serif; color:#fff; background:#fff; }}
+	.employee-id-card {{ width:90mm; margin:0 auto; overflow:hidden; border-radius:26px; color:#fff; background-color:#18376f; background-image:linear-gradient(155deg,#101f45 0%,#18376f 55%,#244f92 100%); }}
+	.id-card-company {{ min-height:92px; display:table; width:100%; padding:20px; color:#fff; text-align:center; background-color:#0a1735; border-bottom:1px solid #506b9d; }}
+	.company-inner {{ display:table-cell; vertical-align:middle; }}
+	.logo,.logo-fallback {{ display:inline-block; width:48px; height:48px; padding:5px; object-fit:contain; vertical-align:middle; border-radius:12px; background:#fff; margin-right:12px; }}
+	.logo-fallback {{ padding:0; line-height:48px; color:#18376f; font-size:22px; font-weight:800; }}
+	.id-card-company-name {{ display:inline-block; max-width:220px; vertical-align:middle; font-size:18px; line-height:1.2; font-weight:700; }}
+	.id-card-body {{ display:table; width:100%; padding:30px 25px 22px; color:#fff; background-color:#18376f; }}
+	.photo-cell,.qr-cell {{ display:table-cell; vertical-align:middle; }} .qr-cell {{ width:138px; text-align:center; }}
+	.id-card-photo {{ width:146px; height:170px; object-fit:cover; border-radius:20px; border:5px solid #fff; }}
+	.fallback {{ line-height:160px; text-align:center; color:#18376f; background:#dce8ff; font-size:44px; font-weight:800; }}
+	.id-card-qr {{ width:138px; height:138px; padding:8px; border-radius:14px; background:#fff; }}
+	.qr-label {{ margin-top:7px; color:#b9d4ff; font-size:9px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; }}
+	.id-card-details {{ padding:0 25px 27px; color:#fff; background-color:#18376f; }}
+	.id-card-name {{ font-size:24px; line-height:1.15; font-weight:800; }}
+	.id-card-designation {{ margin-top:5px; color:#b9d4ff; font-size:13px; font-weight:700; }}
+	.id-card-meta {{ display:table; width:100%; margin-top:20px; }}
+	.meta-item {{ display:table-cell; width:50%; padding-top:10px; border-top:1px solid rgba(185,212,255,.3); }}
+	.meta-item + .meta-item {{ padding-left:12px; }}
+	.meta-label {{ display:block; color:#b9d4ff; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; }}
+	.meta-value {{ display:block; margin-top:4px; color:#fff; font-size:12px; font-weight:700; }}
+	.id-card-info {{ margin-top:18px; padding:14px; border-radius:13px; background-color:#315080; color:#fff; font-size:11px; line-height:1.5; }}
+	.id-card-info strong {{ display:block; margin-bottom:2px; color:#b9d4ff; font-size:9px; text-transform:uppercase; letter-spacing:.8px; }}
+	.mobile {{ display:block; margin-top:9px; color:#fff; font-size:13px; font-weight:700; }}
+	</style></head><body>
+	<article class="employee-id-card">
+	<div class="id-card-company"><div class="company-inner">{logo_html}<span class="id-card-company-name">{escape(card["company_name"])}</span></div></div>
+	<div class="id-card-body"><div class="photo-cell">{photo_html}</div><div class="qr-cell"><img class="id-card-qr" src="{card["qr_code"]}"><div class="qr-label">Scan to identify</div></div></div>
+	<div class="id-card-details"><div class="id-card-name">{escape(card["employee_name"] or "")}</div><div class="id-card-designation">{escape(card["designation"] or "Employee")}</div>
+	<div class="id-card-meta"><div class="meta-item"><span class="meta-label">Employee Code</span><span class="meta-value">{escape(card["employee_code"])}</span></div><div class="meta-item"><span class="meta-label">Department</span><span class="meta-value">{escape(card["department"] or "-")}</span></div></div>
+	<div class="id-card-info"><strong>Company Address</strong>{escape(card["company_address"] or "-")}<span class="mobile">{escape(card["mobile"] or "-")}</span></div></div>
+	</article></body></html>"""
+	from frappe.utils.pdf import get_pdf
+
+	frappe.local.response.filename = f"Employee-Card-{emp_doc.name}.pdf"
+	frappe.local.response.filecontent = get_pdf(html, options={"background": None, "print-media-type": None})
+	frappe.local.response.type = "download"
 
 
 @frappe.whitelist()
