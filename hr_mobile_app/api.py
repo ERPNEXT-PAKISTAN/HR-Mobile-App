@@ -4,7 +4,21 @@ from html import escape
 from io import BytesIO
 
 import frappe
-from frappe.utils import add_months, cint, flt, getdate, get_first_day, get_last_day, nowdate, get_url
+from frappe.utils import (
+	add_months,
+	cint,
+	flt,
+	get_datetime,
+	getdate,
+	get_first_day,
+	get_last_day,
+	now_datetime,
+	nowdate,
+)
+
+LOCATION_PING_MIN_SECONDS = 25
+LOCATION_PING_MIN_DISTANCE_M = 15
+LIVE_LOCATION_MAX_AGE_MINUTES = 45
 
 
 def _resolve_employee(user=None):
@@ -27,14 +41,36 @@ def _employee_image_url(image):
 	return f"/files/{image.lstrip('/')}"
 
 
-def _file_url(path):
+def _photo_version(modified):
+	if not modified:
+		return None
+	return str(modified).replace(" ", "").replace(":", "").replace("-", "").replace(".", "")
+
+
+def _file_url(path, cache_key=None):
 	if not path:
 		return ""
-	# Prefer absolute URL for mobile webview reliability
-	try:
-		return get_url(path if str(path).startswith("/") else f"/{path}")
-	except Exception:
-		return path if str(path).startswith("/") else f"/{path}"
+	path = str(path).strip()
+	# External links must stay as-is. Prefixing "/" or the site host produces
+	# broken URLs like http://127.0.0.1/https://example.com/photo.jpg
+	if path.startswith(("http://", "https://", "//")):
+		return path
+	if not path.startswith("/"):
+		path = f"/files/{path.lstrip('/')}"
+	# Same-origin relative path so photos work on http://127.0.0.1/hr_app
+	# as well as the real hostname. Do not rewrite with get_url().
+	if cache_key:
+		sep = "&" if "?" in path else "?"
+		path = f"{path}{sep}v={cache_key}"
+	return path
+
+
+def _employee_photo_url(image=None, user_id=None, modified=None):
+	"""Employee photo, falling back to the linked User image."""
+	photo = image
+	if not photo and user_id:
+		photo = frappe.db.get_value("User", user_id, "user_image")
+	return _file_url(_employee_image_url(photo), cache_key=_photo_version(modified))
 
 
 def _employee_qr_data_uri(card_data):
@@ -176,10 +212,10 @@ def get_hr_app_user_info():
 	# Check if this employee is a manager (has subordinates reporting to them)
 	subordinates = frappe.get_all("Employee",
 		filters={"reports_to": emp_name, "status": "Active"},
-		fields=["name", "employee_name", "designation", "department", "user_id", "image", "cell_number", "company_email"]
+		fields=["name", "employee_name", "designation", "department", "user_id", "image", "cell_number", "company_email", "modified"]
 	)
 	for s in subordinates:
-		s["image"] = _file_url(_employee_image_url(s.get("image")))
+		s["image"] = _employee_photo_url(s.get("image"), user_id=s.get("user_id"), modified=s.get("modified"))
 	is_manager = len(subordinates) > 0
 
 	# Leave balance summary
@@ -266,7 +302,7 @@ def get_hr_app_user_info():
 			"gender": emp_doc.gender,
 			"current_address": getattr(emp_doc, "current_address", None) or "",
 			"cell_number": getattr(emp_doc, "cell_number", None) or "",
-			"image": _file_url(_employee_image_url(emp_doc.image)),
+			"image": _employee_photo_url(emp_doc.image, user_id=emp_doc.user_id, modified=emp_doc.modified),
 			"date_of_joining": str(emp_doc.date_of_joining) if emp_doc.date_of_joining else ""
 		},
 		"is_manager": is_manager,
@@ -289,7 +325,7 @@ def download_employee_card_pdf():
 	emp_doc = frappe.get_doc("Employee", employee)
 	card = _build_employee_card(emp_doc)
 	company = card["company"]
-	photo = _file_url(_employee_image_url(emp_doc.image))
+	photo = _employee_photo_url(emp_doc.image, user_id=emp_doc.user_id, modified=emp_doc.modified)
 	logo_html = (
 		f'<img class="logo" src="{escape(company["logo"], quote=True)}">'
 		if company["logo"] else '<div class="logo-fallback">C</div>'
@@ -359,6 +395,120 @@ def get_checkin_visit_options():
 		limit_page_length=200, ignore_permissions=True,
 	)
 	return {"enabled": True, "doctors": doctors}
+
+
+def _haversine_m(lat1, lng1, lat2, lng2):
+	from math import asin, cos, radians, sin, sqrt
+
+	r = 6371000.0
+	p1, p2 = radians(lat1), radians(lat2)
+	dlat = radians(lat2 - lat1)
+	dlng = radians(lng2 - lng1)
+	a = sin(dlat / 2) ** 2 + cos(p1) * cos(p2) * sin(dlng / 2) ** 2
+	return 2 * r * asin(sqrt(a))
+
+
+def _latest_checkin_log_type(employee):
+	row = frappe.db.sql(
+		"""
+		select log_type
+		from `tabEmployee Checkin`
+		where employee = %s
+		order by time desc
+		limit 1
+		""",
+		employee,
+		as_dict=True,
+	)
+	return (row[0].log_type or "").upper() if row else None
+
+
+@frappe.whitelist()
+def post_location_ping(latitude=None, longitude=None, accuracy=None, speed=None, heading=None):
+	"""Store a live GPS ping while the employee is currently checked IN."""
+	if frappe.session.user == "Guest":
+		frappe.throw("Not Logged In", frappe.PermissionError)
+
+	if not frappe.db.exists("DocType", "Employee Location Log"):
+		return {"status": "skipped", "reason": "doctype_missing"}
+
+	employee = _resolve_employee()
+	if not employee:
+		frappe.throw("No active Employee linked to your user account.")
+
+	lat = flt(latitude)
+	lng = flt(longitude)
+	if not lat and not lng:
+		frappe.throw("Latitude and longitude are required.")
+	if abs(lat) > 90 or abs(lng) > 180:
+		frappe.throw("Invalid coordinates.")
+
+	if _latest_checkin_log_type(employee) != "IN":
+		return {"status": "skipped", "reason": "not_checked_in"}
+
+	now = now_datetime()
+	last = frappe.db.sql(
+		"""
+		select name, timestamp, latitude, longitude
+		from `tabEmployee Location Log`
+		where employee = %s
+		order by timestamp desc
+		limit 1
+		""",
+		employee,
+		as_dict=True,
+	)
+	if last:
+		age = (now - get_datetime(last[0].timestamp)).total_seconds()
+		if age < LOCATION_PING_MIN_SECONDS:
+			return {"status": "skipped", "reason": "throttled", "age": age}
+		dist = _haversine_m(flt(last[0].latitude), flt(last[0].longitude), lat, lng)
+		if dist < LOCATION_PING_MIN_DISTANCE_M and age < 120:
+			return {"status": "skipped", "reason": "stationary", "distance": dist}
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Employee Location Log",
+			"employee": employee,
+			"timestamp": now,
+			"latitude": lat,
+			"longitude": lng,
+			"accuracy": flt(accuracy) if accuracy not in (None, "") else None,
+			"speed": flt(speed) if speed not in (None, "") else None,
+			"heading": flt(heading) if heading not in (None, "") else None,
+			"source": "Mobile Web App",
+			"device_id": "Mobile Web App",
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	frappe.db.commit()
+	return {
+		"status": "success",
+		"name": doc.name,
+		"employee": employee,
+		"timestamp": str(doc.timestamp),
+		"latitude": lat,
+		"longitude": lng,
+	}
+
+
+@frappe.whitelist()
+def get_live_tracking_status():
+	"""Return whether the signed-in employee should keep sending GPS pings."""
+	if frappe.session.user == "Guest":
+		return {"enabled": False, "reason": "guest"}
+	employee = _resolve_employee()
+	if not employee:
+		return {"enabled": False, "reason": "no_employee"}
+	if not frappe.db.exists("DocType", "Employee Location Log"):
+		return {"enabled": False, "reason": "doctype_missing"}
+	checked_in = _latest_checkin_log_type(employee) == "IN"
+	return {
+		"enabled": checked_in,
+		"employee": employee,
+		"checked_in": checked_in,
+		"interval_seconds": max(LOCATION_PING_MIN_SECONDS, 30),
+	}
 
 
 @frappe.whitelist()
@@ -541,8 +691,12 @@ def get_team_checkins(from_date=None, to_date=None):
 		limit=200
 	)
 	images = {
-		r.name: _file_url(_employee_image_url(r.image))
-		for r in frappe.get_all("Employee", filters={"name": ["in", sub_names]}, fields=["name", "image"])
+		r.name: _employee_photo_url(r.image, user_id=r.user_id, modified=r.modified)
+		for r in frappe.get_all(
+			"Employee",
+			filters={"name": ["in", sub_names]},
+			fields=["name", "image", "user_id", "modified"],
+		)
 	}
 	for c in checkins:
 		c["image"] = images.get(c.employee, "")
@@ -927,7 +1081,7 @@ def get_team_attendance_board(from_date=None, to_date=None):
 	subs = frappe.get_all(
 		"Employee",
 		filters={"reports_to": emp_name, "status": "Active"},
-		fields=["name", "employee_name", "designation", "department", "image"],
+		fields=["name", "employee_name", "designation", "department", "image", "user_id", "modified"],
 		order_by="employee_name asc",
 	)
 	if not subs:
@@ -965,7 +1119,7 @@ def get_team_attendance_board(from_date=None, to_date=None):
 			"employee_name": s.employee_name,
 			"designation": s.designation,
 			"department": s.department,
-			"image": _file_url(_employee_image_url(s.image)),
+			"image": _employee_photo_url(s.image, user_id=s.user_id, modified=s.modified),
 			"status": status,
 			"last_log_type": last.log_type if last else None,
 			"last_time": str(last.time) if last else None,
@@ -993,7 +1147,7 @@ def get_team_attendance_report(mode="day", report_date=None, year=None, month=No
 	subs = frappe.get_all(
 		"Employee",
 		filters={"reports_to": manager, "status": "Active"},
-		fields=["name", "employee_name", "designation", "department", "image"],
+		fields=["name", "employee_name", "designation", "department", "image", "user_id", "modified"],
 		order_by="employee_name asc",
 	)
 	if not subs:
@@ -1142,7 +1296,7 @@ def get_team_attendance_report(mode="day", report_date=None, year=None, month=No
 			"employee_name": s.employee_name,
 			"designation": s.designation,
 			"department": s.department,
-			"image": _file_url(_employee_image_url(s.image)),
+			"image": _employee_photo_url(s.image, user_id=s.user_id, modified=s.modified),
 			"present_days": present_days,
 			"absent_days": absent_days,
 			"in_logs": in_logs,
@@ -1163,7 +1317,7 @@ def get_team_attendance_report(mode="day", report_date=None, year=None, month=No
 			{
 				"employee": s.name,
 				"employee_name": s.employee_name,
-				"image": _file_url(_employee_image_url(s.image)),
+				"image": _employee_photo_url(s.image, user_id=s.user_id, modified=s.modified),
 				"designation": s.designation,
 			}
 			for s in subs

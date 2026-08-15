@@ -171,6 +171,8 @@
       color: white;
       text-transform: uppercase;
       box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
     }
 
     .user-details {
@@ -1233,11 +1235,18 @@
     }
 
     .user-avatar.has-photo {
-      background-size: cover;
-      background-position: center;
       color: transparent;
       text-indent: -9999px;
-      overflow: hidden;
+    }
+
+    .user-avatar img.avatar-photo,
+    .avatar-sm img.avatar-photo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: inherit;
     }
 
     .avatar-sm {
@@ -1252,9 +1261,9 @@
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      background-size: cover;
-      background-position: center;
       border: 2px solid #E6FBF3;
+      position: relative;
+      overflow: hidden;
     }
 
     .avatar-sm.has-photo { color: transparent; text-indent: -9999px; }
@@ -2050,6 +2059,13 @@
     let visitOptionsLoaded = false;
     let doctorHospitals = new Map();
     let doctorOptions = [];
+    let liveTrackingEnabled = false;
+    let livePingTimer = null;
+    let lastPingAt = 0;
+    let lastPingLat = null;
+    let lastPingLng = null;
+    const LIVE_PING_INTERVAL_MS = 30000;
+    const LIVE_PING_MIN_DISTANCE_M = 12;
     
     // Cookie Helper
     function getCookie(name) {
@@ -2195,6 +2211,7 @@
         photo.className = 'id-card-photo';
         photo.src = employee.image;
         photo.alt = `${employee.employee_name || 'Employee'} photo`;
+        photo.referrerPolicy = 'no-referrer';
         photo.onerror = () => {
           const fallback = document.createElement('div');
           fallback.className = 'id-card-photo-fallback';
@@ -2296,6 +2313,7 @@
 
     function showLoginScreen() {
       currentUser = null;
+      setLiveTracking(false);
       document.getElementById('app-header').style.display = 'none';
       document.getElementById('app-nav').style.display = 'none';
       switchTab('login');
@@ -2440,12 +2458,14 @@
           dashText.innerText = 'IN';
           // Set toggle select to OUT by default
           selectCheckinType('OUT');
+          setLiveTracking(true);
         } else {
           headerBadge.className = 'status-badge badge-out';
           headerText.innerText = 'OUT';
           dashBadge.className = 'status-badge badge-out';
           dashText.innerText = 'OUT';
           selectCheckinType('IN');
+          setLiveTracking(false);
         }
       } else {
         dashTime.innerText = 'No check-ins today';
@@ -2454,6 +2474,58 @@
         dashBadge.className = 'status-badge badge-out';
         dashText.innerText = 'OUT';
         selectCheckinType('IN');
+        setLiveTracking(false);
+      }
+    }
+
+    function haversineMeters(lat1, lng1, lat2, lng2) {
+      const toRad = (d) => (d * Math.PI) / 180;
+      const r = 6371000;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2
+        + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * r * Math.asin(Math.sqrt(a));
+    }
+
+    function setLiveTracking(enabled) {
+      liveTrackingEnabled = !!enabled;
+      if (livePingTimer) {
+        clearInterval(livePingTimer);
+        livePingTimer = null;
+      }
+      if (liveTrackingEnabled) {
+        sendLocationPing(true);
+        livePingTimer = setInterval(() => sendLocationPing(false), LIVE_PING_INTERVAL_MS);
+      }
+    }
+
+    async function sendLocationPing(force) {
+      if (!liveTrackingEnabled || !currentUser) return;
+      if (!Number.isFinite(currentLat) || !Number.isFinite(currentLng)) return;
+      const now = Date.now();
+      if (!force && now - lastPingAt < LIVE_PING_INTERVAL_MS - 1000) return;
+      if (!force && lastPingLat != null && lastPingLng != null) {
+        const moved = haversineMeters(lastPingLat, lastPingLng, currentLat, currentLng);
+        if (moved < LIVE_PING_MIN_DISTANCE_M && now - lastPingAt < LIVE_PING_INTERVAL_MS * 2) {
+          return;
+        }
+      }
+      try {
+        const res = await callApi('hr_mobile_app.api.post_location_ping', {
+          latitude: currentLat,
+          longitude: currentLng,
+          accuracy: currentAccuracy,
+        });
+        if (res && res.status === 'success') {
+          lastPingAt = now;
+          lastPingLat = currentLat;
+          lastPingLng = currentLng;
+        } else if (res && res.reason === 'not_checked_in') {
+          setLiveTracking(false);
+        }
+      } catch (e) {
+        console.warn('Location ping failed', e);
       }
     }
 
@@ -2591,9 +2663,12 @@
       if (dashAcc) dashAcc.innerText = currentAccuracy ? `Accuracy ±${Math.round(currentAccuracy)} m` : 'Accuracy —';
       if (dashPill && dashText) {
         dashPill.className = 'geo-status-pill ready';
-        dashText.innerText = 'GPS Ready';
+        dashText.innerText = liveTrackingEnabled ? 'Live tracking' : 'GPS Ready';
       }
       reverseGeocode(currentLat, currentLng);
+      if (liveTrackingEnabled) {
+        sendLocationPing(false);
+      }
     }
 
     async function reverseGeocode(lat, lng) {
@@ -2724,22 +2799,29 @@
     function setAvatarEl(el, imageUrl, name) {
       if (!el) return;
       const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
-      el.innerText = initial;
-      if (imageUrl) {
-        el.classList.add('has-photo');
-        el.style.backgroundImage = `url('${imageUrl}')`;
-      } else {
+      el.textContent = initial;
+      el.classList.remove('has-photo');
+      if (!imageUrl) return;
+      const img = document.createElement('img');
+      img.className = 'avatar-photo';
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.onload = () => el.classList.add('has-photo');
+      img.onerror = () => {
+        img.remove();
         el.classList.remove('has-photo');
-        el.style.backgroundImage = '';
-      }
+      };
+      img.src = imageUrl;
+      el.appendChild(img);
     }
 
     function avatarHtml(imageUrl, name, extraClass = 'avatar-sm') {
       const initial = (name || '?').trim().charAt(0).toUpperCase() || '?';
-      if (imageUrl) {
-        return `<div class="${extraClass} has-photo" style="background-image:url('${imageUrl}')">${initial}</div>`;
+      if (!imageUrl) {
+        return `<div class="${extraClass}">${initial}</div>`;
       }
-      return `<div class="${extraClass}">${initial}</div>`;
+      const src = String(imageUrl).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      return `<div class="${extraClass} has-photo">${initial}<img class="avatar-photo" alt="" referrerpolicy="no-referrer" src="${src}" onerror="this.parentNode.classList.remove('has-photo');this.remove();"></div>`;
     }
 
     async function fetchCheckins() {
@@ -2910,7 +2992,7 @@
       wrap.innerHTML = subs.map(s => {
         const active = selectedTeamMembers.has(s.name) ? 'active' : '';
         const av = s.image
-          ? `<img src="${s.image}" alt="">`
+          ? `<img src="${s.image}" alt="" referrerpolicy="no-referrer">`
           : `<span class="chip-av">${(s.employee_name||'?').charAt(0)}</span>`;
         return `<button type="button" class="chip ${active}" onclick="toggleTeamMember('${s.name}')">${av}${s.employee_name}</button>`;
       }).join('');
