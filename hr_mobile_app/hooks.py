@@ -179,6 +179,11 @@ add_to_apps_screen = [
 # 	"Task": "hr_mobile_app.custom.task.CustomTaskMixin"
 # }
 
+override_doctype_class = {
+	"Payroll Entry": "hr_mobile_app.overrides.payroll_entry.PayrollEntry",
+	"Salary Slip": "hr_mobile_app.overrides.salary_slip.SalarySlip",
+}
+
 # Overriding Methods
 # ------------------------------
 #

@@ -392,7 +392,7 @@ def get_checkin_visit_options():
 		doctor_fields.append("hospital_name")
 	doctors = frappe.get_all(
 		"Doctors", fields=doctor_fields, order_by="modified desc",
-		limit_page_length=200, ignore_permissions=True,
+		ignore_permissions=True,
 	)
 	return {"enabled": True, "doctors": doctors}
 
